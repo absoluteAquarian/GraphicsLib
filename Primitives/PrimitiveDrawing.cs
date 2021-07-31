@@ -14,6 +14,9 @@ namespace GraphicsLib.Primitives{
 		}
 
 		public static void DrawLineStrip(Vector2[] points, Color color){
+			if(points is null)
+				throw new ArgumentNullException("points");
+
 			if(points.Length < 2)
 				throw new ArgumentException("Too few points provided to draw a line");
 
@@ -27,6 +30,9 @@ namespace GraphicsLib.Primitives{
 		}
 
 		public static void DrawLineStrip(Vector2[] points, Color start, Color end){
+			if(points is null)
+				throw new ArgumentNullException("points");
+
 			if(points.Length < 2)
 				throw new ArgumentException("Too few points provided to draw a line");
 
@@ -42,6 +48,11 @@ namespace GraphicsLib.Primitives{
 		}
 
 		public static void DrawLineStrip(Vector2[] points, Color[] colors){
+			if(points is null)
+				throw new ArgumentNullException("points");
+			if(colors is null)
+				throw new ArgumentNullException("colors");
+
 			if(colors.Length != points.Length)
 				throw new ArgumentException("Length of colors array must match length of points array", "colors");
 
@@ -58,6 +69,9 @@ namespace GraphicsLib.Primitives{
 		}
 
 		public static void DrawLineList(Vector2[] points, Color color){
+			if(points is null)
+				throw new ArgumentNullException("points");
+
 			if(points.Length % 2 != 0)
 				throw new ArgumentException("Length of points array must be a multiple of 2", "points");
 
@@ -73,6 +87,11 @@ namespace GraphicsLib.Primitives{
 		}
 
 		public static void DrawLineList(Vector2[] points, Color[] colors){
+			if(points is null)
+				throw new ArgumentNullException("points");
+			if(colors is null)
+				throw new ArgumentNullException("colors");
+
 			if(points.Length % 2 != 0)
 				throw new ArgumentException("Length of points array must be a multiple of 2", "points");
 			if(colors.Length != points.Length)
@@ -159,6 +178,9 @@ namespace GraphicsLib.Primitives{
 		}
 
 		public static void DrawTriangleList(Vector2[] points, Color color){
+			if(points is null)
+				throw new ArgumentNullException("points");
+
 			if(points.Length % 3 != 0)
 				throw new ArgumentException("Length of points array must be a multiple of 3", "points");
 
@@ -174,6 +196,11 @@ namespace GraphicsLib.Primitives{
 		}
 
 		public static void DrawTriangleList(Vector2[] points, Color[] colors){
+			if(points is null)
+				throw new ArgumentNullException("points");
+			if(colors is null)
+				throw new ArgumentNullException("colors");
+
 			if(points.Length % 3 != 0)
 				throw new ArgumentException("Length of points array must be a multiple of 3", "points");
 			if(colors.Length != points.Length)
@@ -191,6 +218,9 @@ namespace GraphicsLib.Primitives{
 		}
 
 		public static void SubmitPacket(PrimitivePacket packet){
+			if(packet is null)
+				throw new ArgumentNullException("packet");
+
 			VertexBuffer buffer = new VertexBuffer(Main.graphics.GraphicsDevice, typeof(VertexPositionColor), packet.draws.Count, BufferUsage.WriteOnly);
 
 			//Calculate the number of primitives that will be drawn
@@ -209,7 +239,7 @@ namespace GraphicsLib.Primitives{
 		}
 
 		/// <summary>
-		/// Converts the riven world <paramref name="worldPos"/> coordinate, <paramref name="color"/> draw color and <paramref name="drawDepth"/> draw depth into a <seealso cref="VertexPositionColor"/> that can be used in primitives drawing
+		/// Converts the riven world <paramref name="worldPos"/> coordinate and <paramref name="color"/> draw color into a <seealso cref="VertexPositionColor"/> that can be used in primitives drawing
 		/// </summary>
 		/// <param name="worldPos">The absolute world position</param>
 		/// <param name="color">The draw color</param>
