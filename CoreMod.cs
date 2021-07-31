@@ -192,7 +192,17 @@ namespace GraphicsLib{
 					mesh.Draw();
 
 					return mesh.ID;
-				case "Draw Mesh Indirect":
+				case "Draw Mesh, Direct Data":
+					CheckArgsLength(4, GetMethodArgs(typeof(Mesh), ".ctor", BindingFlags.Public | BindingFlags.Instance, typeof(Texture2D), typeof(VertexPositionColorTexture[]), typeof(Effect)));
+					CheckArg(1, out texture);
+					CheckArg(2, out VertexPositionColorTexture[] vertices);
+					CheckArg(3, out shader);
+
+					mesh = new Mesh(texture, vertices, shader);
+					mesh.Draw();
+
+					return mesh.ID;
+				case "Draw Mesh, Indirect":
 					CheckArgsLength(1, "int id");
 					CheckArg(1, out int id);
 
