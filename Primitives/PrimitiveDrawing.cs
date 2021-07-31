@@ -221,6 +221,12 @@ namespace GraphicsLib.Primitives{
 			if(packet is null)
 				throw new ArgumentNullException("packet");
 
+			if(packet.draws is null)
+				throw new ArgumentNullException("packet.draws");
+
+			if(packet.draws.Count <= 0)
+				throw new ArgumentOutOfRangeException("packet.draws.Count", "Packet does not have any primitive data attached to it");
+
 			VertexBuffer buffer = new VertexBuffer(Main.graphics.GraphicsDevice, typeof(VertexPositionColor), packet.draws.Count, BufferUsage.WriteOnly);
 
 			//Calculate the number of primitives that will be drawn
