@@ -22,7 +22,7 @@ namespace GraphicsLib.Meshes{
 		/// <param name="textureCoords">The texture coordinates for this mesh's vertices.  Expected values per vertex range from 0 to 1, inclusive.</param>
 		/// <param name="color">The color for this mesh's vertices</param>
 		/// <param name="shader">The shader to draw this mesh with</param>
-		public unsafe Mesh(Texture2D texture, Vector2[] positions, Vector2[] textureCoords, Color color, Effect shader = null){
+		public Mesh(Texture2D texture, Vector2[] positions, Vector2[] textureCoords, Color color, Effect shader = null){
 			this.texture = texture;
 			this.shader = shader;
 
@@ -36,26 +36,28 @@ namespace GraphicsLib.Meshes{
 
 			mesh = new VertexPositionColorTexture[positions.Length];
 
-			fixed(Vector2* positionPtr = positions){
-				fixed(Vector2* texturePtr = textureCoords){
-					fixed(VertexPositionColorTexture* meshPtr = mesh){
-						Vector2* nfPosition = positionPtr;
-						Vector2* nfTexture = texturePtr;
-						VertexPositionColorTexture* nfMesh = meshPtr;
+			unsafe{
+				fixed(Vector2* positionPtr = positions){
+					fixed(Vector2* texturePtr = textureCoords){
+						fixed(VertexPositionColorTexture* meshPtr = mesh){
+							Vector2* nfPosition = positionPtr;
+							Vector2* nfTexture = texturePtr;
+							VertexPositionColorTexture* nfMesh = meshPtr;
 
-						int length = positions.Length;
-						for(int i = 0; i < length; i++){
-							var tex = *nfTexture;
-							if(tex.X < 0 || tex.X > 1 || tex.Y < 0 || tex.Y > 1)
-								throw new ArgumentOutOfRangeException($"textureCoords[{i}] had invalid values (X: {tex.X}, Y: {tex.Y}).  Expected values are between 0 and 1, inclusive.");
+							int length = positions.Length;
+							for(int i = 0; i < length; i++){
+								var tex = *nfTexture;
+								if(tex.X < 0 || tex.X > 1 || tex.Y < 0 || tex.Y > 1)
+									throw new ArgumentOutOfRangeException($"textureCoords[{i}] had invalid values (X: {tex.X}, Y: {tex.Y}).  Expected values are between 0 and 1, inclusive.");
 
-							nfMesh->Position = new Vector3(*nfPosition, 0);
-							nfMesh->TextureCoordinate = tex;
-							nfMesh->Color = color;
+								nfMesh->Position = new Vector3(*nfPosition, 0);
+								nfMesh->TextureCoordinate = tex;
+								nfMesh->Color = color;
 
-							nfPosition++;
-							nfTexture++;
-							nfMesh++;
+								nfPosition++;
+								nfTexture++;
+								nfMesh++;
+							}
 						}
 					}
 				}
@@ -73,7 +75,7 @@ namespace GraphicsLib.Meshes{
 		/// <param name="textureCoords">The texture coordinates for this mesh's vertices.  Expected values per vertex range from 0 to 1, inclusive.</param>
 		/// <param name="colors">The colors for this mesh's vertices</param>
 		/// <param name="shader">The shader to draw this mesh with</param>
-		public unsafe Mesh(Texture2D texture, Vector2[] positions, Vector2[] textureCoords, Color[] colors, Effect shader = null){
+		public Mesh(Texture2D texture, Vector2[] positions, Vector2[] textureCoords, Color[] colors, Effect shader = null){
 			this.texture = texture;
 			this.shader = shader;
 
@@ -89,29 +91,31 @@ namespace GraphicsLib.Meshes{
 
 			mesh = new VertexPositionColorTexture[positions.Length];
 
-			fixed(Vector2* positionPtr = positions){
-				fixed(Vector2* texturePtr = textureCoords){
-					fixed(Color* colorPtr = colors){
-						fixed(VertexPositionColorTexture* meshPtr = mesh){
-							Vector2* nfPosition = positionPtr;
-							Vector2* nfTexture = texturePtr;
-							Color* nfColor = colorPtr;
-							VertexPositionColorTexture* nfMesh = meshPtr;
+			unsafe{
+				fixed(Vector2* positionPtr = positions){
+					fixed(Vector2* texturePtr = textureCoords){
+						fixed(Color* colorPtr = colors){
+							fixed(VertexPositionColorTexture* meshPtr = mesh){
+								Vector2* nfPosition = positionPtr;
+								Vector2* nfTexture = texturePtr;
+								Color* nfColor = colorPtr;
+								VertexPositionColorTexture* nfMesh = meshPtr;
 
-							int length = positions.Length;
-							for(int i = 0; i < length; i++){
-								var tex = *nfTexture;
-								if(tex.X < 0 || tex.X > 1 || tex.Y < 0 || tex.Y > 1)
-									throw new ArgumentOutOfRangeException($"textureCoords[{i}] had invalid values (X: {tex.X}, Y: {tex.Y}).  Expected values are between 0 and 1, inclusive.");
+								int length = positions.Length;
+								for(int i = 0; i < length; i++){
+									var tex = *nfTexture;
+									if(tex.X < 0 || tex.X > 1 || tex.Y < 0 || tex.Y > 1)
+										throw new ArgumentOutOfRangeException($"textureCoords[{i}] had invalid values (X: {tex.X}, Y: {tex.Y}).  Expected values are between 0 and 1, inclusive.");
 
-								nfMesh->Position = new Vector3(*nfPosition, 0);
-								nfMesh->TextureCoordinate = tex;
-								nfMesh->Color = *nfColor;
+									nfMesh->Position = new Vector3(*nfPosition, 0);
+									nfMesh->TextureCoordinate = tex;
+									nfMesh->Color = *nfColor;
 
-								nfPosition++;
-								nfTexture++;
-								nfColor++;
-								nfMesh++;
+									nfPosition++;
+									nfTexture++;
+									nfColor++;
+									nfMesh++;
+								}
 							}
 						}
 					}
