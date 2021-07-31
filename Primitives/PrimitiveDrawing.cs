@@ -185,8 +185,8 @@ namespace GraphicsLib.Primitives{
 				throw new ArgumentException("Length of points array must be a multiple of 3", "points");
 
 			//Nothing to draw, so don't
-			if(points.Length < 2)
-				throw new ArgumentException("Too few points provided to draw a line");
+			if(points.Length < 3)
+				throw new ArgumentException("Too few points provided to draw a triangle");
 
 			PrimitivePacket packet = new PrimitivePacket(PrimitiveType.TriangleList);
 			for(int i = 0; i < points.Length; i += 3)
@@ -207,8 +207,8 @@ namespace GraphicsLib.Primitives{
 				throw new ArgumentException("Length of colors array must match length of points array", "colors");
 
 			//Nothing to draw, so don't
-			if(points.Length < 2)
-				return;
+			if(points.Length < 3)
+				throw new ArgumentException("Too few points provided to draw a triangle");
 
 			PrimitivePacket packet = new PrimitivePacket(PrimitiveType.LineList);
 			for(int i = 0; i < points.Length; i += 3)
