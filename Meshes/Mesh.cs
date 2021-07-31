@@ -127,6 +127,38 @@ namespace GraphicsLib.Meshes{
 		}
 
 		/// <summary>
+		/// Creates a new <seealso cref="Mesh"/> instance
+		/// </summary>
+		/// <param name="texture">The texture</param>
+		/// <param name="vertices">The vertex data.  Expected values for each vertex's texture coordinates range from 0 to 1, inclusive.</param>
+		/// <param name="shader">The shader to draw this mesh with</param>
+		public Mesh(Texture2D texture, VertexPositionColorTexture[] vertices, Effect shader = null){
+			this.texture = texture;
+			this.shader = shader;
+
+			unsafe{
+				fixed(VertexPositionColorTexture* vertexPtr = vertices){
+					VertexPositionColorTexture* nfVertex = vertexPtr;
+
+					int length = vertices.Length;
+					for(int i = 0; i < length; i++){
+						var tex = nfVertex->TextureCoordinate;
+
+						if(tex.X < 0 || tex.X > 1 || tex.Y < 0 || tex.Y > 1)
+							throw new ArgumentOutOfRangeException($"textureCoords[{i}] had invalid values (X: {tex.X}, Y: {tex.Y}).  Expected values are between 0 and 1, inclusive.");
+
+						nfVertex->Position.Z = 0;
+
+						nfVertex++;
+					}
+				}
+			}
+
+			ID = CoreMod.indirectMeshNextID++;
+			CoreMod.indirectMeshes.Add(ID, this);
+		}
+
+		/// <summary>
 		/// Draws this mesh immediately, bypassing <seealso cref="Main.spriteBatch"/>
 		/// </summary>
 		public void Draw(){
