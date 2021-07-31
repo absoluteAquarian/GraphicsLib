@@ -1,0 +1,3 @@
+displayName = absoluteAquarian's Graphics Library
+author = absoluteAquarian
+version = 1.0
