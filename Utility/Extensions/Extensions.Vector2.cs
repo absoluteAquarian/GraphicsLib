@@ -47,5 +47,8 @@ namespace GraphicsLib.Utility.Extensions{
 		/// <param name="axis">The axis vector</param>
 		public static Vector2 ProjectOnto(this Vector2 orig, Vector2 axis)
 			=> orig.Length() * (float)Math.Cos(orig.AngleBetween(axis)) * axis.Unit();
+
+		public static float DirectionTo(this Vector2 source, Vector2 destination)
+			=> (destination - source).ToRotation();
 	}
 }

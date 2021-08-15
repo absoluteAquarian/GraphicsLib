@@ -18,6 +18,7 @@ namespace GraphicsLib.Meshes{
 		private VertexPositionColorTexture[] defaultMesh;
 
 		private bool customIndexBuffer;
+		private int[] iBufferArr;
 
 		/// <summary>
 		/// Creates a new <seealso cref="Mesh"/> instance
@@ -167,6 +168,7 @@ namespace GraphicsLib.Meshes{
 			oldMeshLength = mesh.Length;
 
 			customIndexBuffer = true;
+			iBufferArr = (int[])indices.Clone();
 		}
 
 		/// <summary>
@@ -222,6 +224,7 @@ namespace GraphicsLib.Meshes{
 			oldMeshLength = mesh.Length;
 
 			customIndexBuffer = true;
+			iBufferArr = (int[])indices.Clone();
 
 			ID = CoreMod.indirectMeshNextID++;
 			CoreMod.indirectMeshes.Add(ID, this);
@@ -282,6 +285,7 @@ namespace GraphicsLib.Meshes{
 			oldMeshLength = mesh.Length;
 
 			customIndexBuffer = true;
+			iBufferArr = (int[])indices.Clone();
 
 			ID = CoreMod.indirectMeshNextID++;
 			CoreMod.indirectMeshes.Add(ID, this);
@@ -293,15 +297,19 @@ namespace GraphicsLib.Meshes{
 		public void Draw(){
 			if(!customIndexBuffer && mesh.Length % 3 != 0)
 				throw new InvalidOperationException("Vertex array must have a length which is a multiple of 3");
+			else if(customIndexBuffer && iBufferArr.Length % 3 != 0)
+				throw new InvalidOperationException("Index buffer must have a length which is a multiple of 3");
 
 			GraphicsDevice device = Main.graphics.GraphicsDevice;
 
 			device.Textures[0] = texture;
 
 			EnsureBuffersAreInitialized(device);
+			EnsureTrianglesAreFrontFaced();
 
-			//Vertices can end up having a "backwards" face if the points are connected in a counter-clockwise fashion... make them not be culled
+			//Vertices can end up having a "backwards" face if the points are connected in a counter-clockwise fashion... make them be not culled
 			device.RasterizerState = RasterizerState.CullNone;
+			device.BlendState = BlendState.AlphaBlend;
 
 			if(shader != null){
 				foreach(var pass in shader.CurrentTechnique.Passes){
@@ -311,10 +319,10 @@ namespace GraphicsLib.Meshes{
 					if(!object.ReferenceEquals(device.Textures[0], texture))
 						device.Textures[0] = texture;
 
-					device.DrawPrimitives(PrimitiveType.TriangleList, 0, mesh.Length / 3);
+					device.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, mesh.Length, 0, iBufferArr.Length / 3);
 				}
 			}else
-				device.DrawPrimitives(PrimitiveType.TriangleList, 0, mesh.Length / 3);
+				device.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, mesh.Length, 0, iBufferArr.Length / 3);
 		}
 
 		private VertexBuffer vBuffer;
@@ -328,7 +336,7 @@ namespace GraphicsLib.Meshes{
 
 			if(iBuffer is null || iBuffer.IsDisposed || oldMeshLength != mesh.Length){
 				iBuffer = new IndexBuffer(device, IndexElementSize.ThirtyTwoBits, mesh.Length, BufferUsage.WriteOnly);
-				iBuffer.SetData(GetIndexBuffer());
+				iBuffer.SetData(GetDefaultIndexBuffer());
 
 				customIndexBuffer = false;
 			}
@@ -343,11 +351,44 @@ namespace GraphicsLib.Meshes{
 			oldMeshLength = mesh.Length;
 		}
 
-		private int[] GetIndexBuffer(){
+		private void EnsureTrianglesAreFrontFaced(){
+			for(int i = 0; i < iBufferArr.Length - 1; i += 3){
+				var vert = mesh[iBufferArr[i]].Position.XY();
+				var vert2 = mesh[iBufferArr[i + 1]].Position.XY();
+				var vert3 = mesh[iBufferArr[i + 2]].Position.XY();
+
+				var dir2 = vert.DirectionTo(vert2);
+				var dir3 = vert.DirectionTo(vert3);
+
+				//Ensure that the "angle" checked is between the two vectors
+				if(dir2 < 0)
+					dir2 += MathHelper.TwoPi;
+				if(dir3 < 0)
+					dir3 += MathHelper.TwoPi;
+
+				if(dir3 > 3 * MathHelper.PiOver2 && dir2 < MathHelper.PiOver2)
+					dir2 += MathHelper.TwoPi;
+				if(dir2 > 3 * MathHelper.PiOver2 && dir3 < MathHelper.PiOver2)
+					dir3 += MathHelper.TwoPi;
+
+				if(dir2 - dir3 > 0)
+					throw new InvalidOperationException($"Vertex/index data had a counter-clockwise triangle (Vertices: {iBufferArr[i]}, {iBufferArr[i + 1]}, {iBufferArr[i + 2]})");
+			}
+		}
+
+		private int[] GetDefaultIndexBuffer(){
 			int[] arr = new int[mesh.Length];
 			for(int i = 0; i < arr.Length; i++)
 				arr[i] = i;
 			return arr;
+		}
+
+		public void UpdateIndexBuffer(int[] indices){
+			if(iBuffer is null || iBuffer.IsDisposed)
+				iBuffer = new IndexBuffer(Main.graphics.GraphicsDevice, IndexElementSize.ThirtyTwoBits, indices.Length, BufferUsage.WriteOnly);
+
+			iBuffer.SetData(indices);
+			iBufferArr = (int[])indices.Clone();
 		}
 
 		/// <summary>

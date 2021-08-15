@@ -75,7 +75,7 @@ namespace GraphicsLib.Examples{
 							//Triangle 1
 							0, 1, 2,
 							//Triangle 2
-							1, 3, 2
+							2, 1, 3
 						},
 						null);
 
