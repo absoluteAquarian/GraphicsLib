@@ -17,12 +17,14 @@ namespace GraphicsLib.Meshes{
 
 		private VertexPositionColorTexture[] defaultMesh;
 
+		private bool customIndexBuffer;
+
 		/// <summary>
 		/// Creates a new <seealso cref="Mesh"/> instance
 		/// </summary>
 		/// <param name="texture">The texture</param>
 		/// <param name="positions">The screen positions to draw this mesh's vertices at</param>
-		/// <param name="textureCoords">The texture coordinates for this mesh's vertices.  Expected values per vertex range from 0 to 1, inclusive.</param>
+		/// <param name="textureCoords">The texture coordinates for this mesh's vertices.  Expected values per vertex range from 0 to 1, inclusive</param>
 		/// <param name="color">The color for this mesh's vertices</param>
 		/// <param name="shader">The shader to draw this mesh with</param>
 		public Mesh(Texture2D texture, Vector2[] positions, Vector2[] textureCoords, Color color, Effect shader = null){
@@ -121,7 +123,7 @@ namespace GraphicsLib.Meshes{
 		/// Creates a new <seealso cref="Mesh"/> instance
 		/// </summary>
 		/// <param name="texture">The texture</param>
-		/// <param name="vertices">The vertex data.  Expected values for each vertex's texture coordinates range from 0 to 1, inclusive.</param>
+		/// <param name="vertices">The vertex data.  Expected values for each vertex's texture coordinates range from 0 to 1, inclusive</param>
 		/// <param name="shader">The shader to draw this mesh with</param>
 		public Mesh(Texture2D texture, VertexPositionColorTexture[] vertices, Effect shader = null){
 			this.texture = texture;
@@ -145,10 +147,151 @@ namespace GraphicsLib.Meshes{
 		}
 
 		/// <summary>
+		/// Creates a new <seealso cref="Mesh"/> instance with a custom index buffer
+		/// </summary>
+		/// <param name="texture">The texture</param>
+		/// <param name="vertices">The vertex data.  Expected values for each vertex's texture coordinates range from 0 to 1, inclusive</param>
+		/// <param name="indices">The index data</param>
+		/// <param name="shader">The shader to draw this mesh with</param>
+		/// <remarks>NOTE: Modifying the <seealso cref="mesh"/> array length will cause the library to force the index buffer back to the "one vertex per index" functionality, so keep that in mind.</remarks>
+		public Mesh(Texture2D texture, VertexPositionColorTexture[] vertices, int[] indices, Effect shader = null) : this(texture, vertices, shader){
+			if(indices is null)
+				throw new ArgumentNullException("indices");
+
+			if(indices.Length < 1)
+				throw new ArgumentException("Index array was too small", "indices");
+
+			iBuffer = new IndexBuffer(Main.graphics.GraphicsDevice, IndexElementSize.ThirtyTwoBits, indices.Length, BufferUsage.WriteOnly);
+			iBuffer.SetData(indices);
+
+			oldMeshLength = mesh.Length;
+
+			customIndexBuffer = true;
+		}
+
+		/// <summary>
+		/// Creates a new <seealso cref="Mesh"/> instance with a custom index buffer
+		/// </summary>
+		/// <param name="texture">The texture</param>
+		/// <param name="positions">The screen positions to draw this mesh's vertices at</param>
+		/// <param name="textureCoords">The texture coordinates for this mesh's vertices.  Expected values per vertex range from 0 to 1, inclusive.</param>
+		/// <param name="color">The color for this mesh's vertices</param>
+		/// <param name="indices">The idnex data</param>
+		/// <param name="shader">The shader to draw this mesh with</param>
+		/// <remarks>NOTE: Modifying the <seealso cref="mesh"/> array length will cause the library to force the index buffer back to the "one vertex per index" functionality, so keep that in mind.</remarks>
+		public Mesh(Texture2D texture, Vector2[] positions, Vector2[] textureCoords, Color color, int[] indices, Effect shader = null){
+			if(texture is null || texture.IsDisposed)
+				throw new ArgumentException("Invalid texture (null or disposed)");
+
+			this.texture = texture;
+			this.shader = shader;
+
+			if(positions is null)
+				throw new ArgumentNullException("positions", "Position array was null");
+			if(textureCoords is null)
+				throw new ArgumentNullException("textureCoords", "Texture coordinate array was null");
+
+			if(positions.Length != textureCoords.Length)
+				throw new ArgumentException("Arrays must have equal length");
+
+			mesh = new VertexPositionColorTexture[positions.Length];
+
+			for(int i = 0; i < positions.Length; i++){
+				var tex = textureCoords[i];
+				if(tex.X < 0 || tex.X > 1 || tex.Y < 0 || tex.Y > 1)
+					throw new ArgumentOutOfRangeException($"textureCoords[{i}] had invalid values (X: {tex.X}, Y: {tex.Y}).  Expected values are between 0 and 1, inclusive.");
+
+				ref var rMesh = ref mesh[i];
+				rMesh.Position = new Vector3(positions[i], 0);
+				rMesh.TextureCoordinate = tex;
+				rMesh.Color = color;
+			}
+
+			defaultMesh = new VertexPositionColorTexture[mesh.Length];
+			Array.Copy(mesh, defaultMesh, mesh.Length);
+
+			if(indices is null)
+				throw new ArgumentNullException("indices");
+
+			if(indices.Length < 1)
+				throw new ArgumentException("Index array was too small", "indices");
+
+			iBuffer = new IndexBuffer(Main.graphics.GraphicsDevice, IndexElementSize.ThirtyTwoBits, indices.Length, BufferUsage.WriteOnly);
+			iBuffer.SetData(indices);
+
+			oldMeshLength = mesh.Length;
+
+			customIndexBuffer = true;
+
+			ID = CoreMod.indirectMeshNextID++;
+			CoreMod.indirectMeshes.Add(ID, this);
+		}
+
+		/// <summary>
+		/// Creates a new <seealso cref="Mesh"/> instance with a custom index buffer
+		/// </summary>
+		/// <param name="texture">The texture</param>
+		/// <param name="positions">The screen positions to draw this mesh's vertices at</param>
+		/// <param name="textureCoords">The texture coordinates for this mesh's vertices.  Expected values per vertex range from 0 to 1, inclusive.</param>
+		/// <param name="colors">The colors for this mesh's vertices</param>
+		/// <param name="indices">The idnex data</param>
+		/// <param name="shader">The shader to draw this mesh with</param>
+		/// <remarks>NOTE: Modifying the <seealso cref="mesh"/> array length will cause the library to force the index buffer back to the "one vertex per index" functionality, so keep that in mind.</remarks>
+		public Mesh(Texture2D texture, Vector2[] positions, Vector2[] textureCoords, Color[] colors, int[] indices, Effect shader = null){
+			if(texture is null || texture.IsDisposed)
+				throw new ArgumentException("Invalid texture (null or disposed)");
+
+			this.texture = texture;
+			this.shader = shader;
+
+			if(positions is null)
+				throw new ArgumentNullException("positions", "Position array was null");
+			if(textureCoords is null)
+				throw new ArgumentNullException("textureCoords", "Texture coordinate array was null");
+			if(colors is null)
+				throw new ArgumentNullException("colors", "Colors array was null");
+
+			if(positions.Length != textureCoords.Length || positions.Length != colors.Length)
+				throw new ArgumentException("Arrays must have equal length");
+
+			mesh = new VertexPositionColorTexture[positions.Length];
+
+			for(int i = 0; i < positions.Length; i++){
+				var tex = textureCoords[i];
+				if(tex.X < 0 || tex.X > 1 || tex.Y < 0 || tex.Y > 1)
+					throw new ArgumentOutOfRangeException($"textureCoords[{i}] had invalid values (X: {tex.X}, Y: {tex.Y}).  Expected values are between 0 and 1, inclusive.");
+
+				ref var rMesh = ref mesh[i];
+				rMesh.Position = new Vector3(positions[i], 0);
+				rMesh.TextureCoordinate = tex;
+				rMesh.Color = colors[i];
+			}
+
+			defaultMesh = new VertexPositionColorTexture[mesh.Length];
+			Array.Copy(mesh, defaultMesh, mesh.Length);
+
+			if(indices is null)
+				throw new ArgumentNullException("indices");
+
+			if(indices.Length < 1)
+				throw new ArgumentException("Index array was too small", "indices");
+
+			iBuffer = new IndexBuffer(Main.graphics.GraphicsDevice, IndexElementSize.ThirtyTwoBits, indices.Length, BufferUsage.WriteOnly);
+			iBuffer.SetData(indices);
+
+			oldMeshLength = mesh.Length;
+
+			customIndexBuffer = true;
+
+			ID = CoreMod.indirectMeshNextID++;
+			CoreMod.indirectMeshes.Add(ID, this);
+		}
+
+		/// <summary>
 		/// Draws this mesh immediately, bypassing <seealso cref="Main.spriteBatch"/>
 		/// </summary>
 		public void Draw(){
-			if(mesh.Length % 3 != 0)
+			if(!customIndexBuffer && mesh.Length % 3 != 0)
 				throw new InvalidOperationException("Vertex array must have a length which is a multiple of 3");
 
 			GraphicsDevice device = Main.graphics.GraphicsDevice;
@@ -156,6 +299,9 @@ namespace GraphicsLib.Meshes{
 			device.Textures[0] = texture;
 
 			EnsureBuffersAreInitialized(device);
+
+			//Vertices can end up having a "backwards" face if the points are connected in a counter-clockwise fashion... make them not be culled
+			device.RasterizerState = RasterizerState.CullNone;
 
 			if(shader != null){
 				foreach(var pass in shader.CurrentTechnique.Passes){
@@ -183,6 +329,8 @@ namespace GraphicsLib.Meshes{
 			if(iBuffer is null || iBuffer.IsDisposed || oldMeshLength != mesh.Length){
 				iBuffer = new IndexBuffer(device, IndexElementSize.ThirtyTwoBits, mesh.Length, BufferUsage.WriteOnly);
 				iBuffer.SetData(GetIndexBuffer());
+
+				customIndexBuffer = false;
 			}
 			
 			//GraphicsDevice must not have a vertex buffer bound to it to set data on ANY VertexBuffer
@@ -289,6 +437,9 @@ namespace GraphicsLib.Meshes{
 		}
 
 		public void Reset(){
+			if(mesh.Length != defaultMesh.Length)
+				mesh = new VertexPositionColorTexture[defaultMesh.Length];
+
 			Array.Copy(defaultMesh, mesh, mesh.Length);
 		}
 

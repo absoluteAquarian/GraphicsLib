@@ -54,30 +54,29 @@ namespace GraphicsLib.Examples{
 				if(!Main.dedServ){
 					drawMesh = new Mesh(Main.projectileTexture[projectile.type],
 						//Positions
-						//NOTE: vertex positions are important!  If part of your mesh isn't drawing, try swapping the vertices
 						new Vector2[]{
-							//Triangle 1
 							projectile.TopLeft,
 							projectile.TopRight,
 							projectile.BottomLeft,
-							//Triangle 2
-							projectile.BottomLeft,
-							projectile.TopRight,
 							projectile.BottomRight
 						},
 						//Texture coordinates
 						//IMPORTANT: texture coordinates are NORMALIZED, meaning they range from 0 to 1 for the ENTIRE TEXTURE
 						new Vector2[]{
-							//Triangle 1
 							Vector2.Zero,
 							Vector2.UnitX,
 							Vector2.UnitY,
-							//Triangle 2
-							Vector2.UnitY,
-							Vector2.UnitX,
 							Vector2.One
 						},
 						Color.White,
+						//Index data
+						//The values in this array correspond to what positions/texture coordinates/colors to use in the other arrays
+						new int[]{
+							//Triangle 1
+							0, 1, 2,
+							//Triangle 2
+							1, 3, 2
+						},
 						null);
 
 					drawMesh.ApplyTranslation(-Main.screenPosition);

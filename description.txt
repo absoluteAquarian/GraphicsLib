@@ -1,6 +1,5 @@
 This library mod is designed to help with the creation and use of graphics, such as GPU primitives and texture meshes.
 
-Indirect use of the mod is supported via Mod.Call()
+Indirect use of the mod is supported via Mod.Call(), though it's recommended to have the mod as a direct dependency.
 
-============
-TODO: add more mesh manipulation, add custom vertex drawing that users might want
+Examples can be found in the GitHub repository via the homepage below in the Examples folder.

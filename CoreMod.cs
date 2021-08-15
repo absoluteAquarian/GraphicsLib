@@ -273,6 +273,64 @@ namespace GraphicsLib{
 						default:
 							throw new ArgumentException($"Unknown mesh member requested: {meshArg}");
 					}
+				case "Translate Mesh":
+					CheckArgsLength(2, "int id", "Vector2 offset");
+					CheckArg(1, out id);
+
+					if(!indirectMeshes.TryGetValue(id, out mesh))
+						throw new ArgumentException($"ID {id} does not refer to a valid cached Mesh instance");
+
+					CheckArg(2, out Vector2 offset);
+
+					mesh.ApplyTranslation(offset);
+					return true;
+				case "Rotate Mesh":
+					CheckArgsLength(3, "int id", "Vector2 rotationOrigin", "float radians");
+					CheckArg(1, out id);
+
+					if(!indirectMeshes.TryGetValue(id, out mesh))
+						throw new ArgumentException($"ID {id} does not refer to a valid cached Mesh instance");
+
+					CheckArg(2, out Vector2 rotationOrigin);
+					CheckArg(3, out float radians);
+
+					mesh.ApplyRotation(rotationOrigin, radians);
+					return true;
+				case "Scale Mesh":
+					CheckArgsLength(4, "int id", "float scale", "Vector2 scaleCenter", "float scaleAxesDirection");
+					CheckArg(1, out id);
+
+					if(!indirectMeshes.TryGetValue(id, out mesh))
+						throw new ArgumentException($"ID {id} does not refer to a valid cached Mesh instance");
+
+					CheckArg(2, out float scaleF);
+					CheckArg(3, out Vector2 scaleCenter);
+					CheckArg(4, out float scaleAxis);
+
+					mesh.ApplyScale(scaleF, scaleCenter, scaleAxis);
+					return true;
+				case "Scale Mesh, Vector":
+					CheckArgsLength(4, "int id", "Vector2 scale", "Vector2 scaleCenter", "float scaleAxesDirection");
+					CheckArg(1, out id);
+
+					if(!indirectMeshes.TryGetValue(id, out mesh))
+						throw new ArgumentException($"ID {id} does not refer to a valid cached Mesh instance");
+
+					CheckArg(2, out Vector2 scaleV);
+					CheckArg(3, out scaleCenter);
+					CheckArg(4, out scaleAxis);
+
+					mesh.ApplyScale(scaleV, scaleCenter, scaleAxis);
+					return true;
+				case "Reset Mesh":
+					CheckArgsLength(1, "int id");
+					CheckArg(1, out id);
+
+					if(!indirectMeshes.TryGetValue(id, out mesh))
+						throw new ArgumentException($"ID {id} does not refer to a valid cached Mesh instance");
+
+					mesh.Reset();
+					return true;
 				default:
 					throw new ArgumentException($"Function \"{function}\" is not defined by GraphicsLib");
 			}
