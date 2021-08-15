@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using GraphicsLib.Utility.Extensions;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using Terraria;
@@ -7,12 +8,14 @@ namespace GraphicsLib.Meshes{
 	/// <summary>
 	/// A vertex mesh bound to a texture
 	/// </summary>
-	public class Mesh{
+	public sealed class Mesh{
 		public Texture2D texture;
 		public VertexPositionColorTexture[] mesh;
 		public Effect shader;
 
 		public readonly int ID;
+
+		private VertexPositionColorTexture[] defaultMesh;
 
 		/// <summary>
 		/// Creates a new <seealso cref="Mesh"/> instance
@@ -23,8 +26,16 @@ namespace GraphicsLib.Meshes{
 		/// <param name="color">The color for this mesh's vertices</param>
 		/// <param name="shader">The shader to draw this mesh with</param>
 		public Mesh(Texture2D texture, Vector2[] positions, Vector2[] textureCoords, Color color, Effect shader = null){
+			if(texture is null || texture.IsDisposed)
+				throw new ArgumentException("Invalid texture (null or disposed)");
+
 			this.texture = texture;
 			this.shader = shader;
+
+			if(positions is null)
+				throw new ArgumentNullException("positions", "Position array was null");
+			if(textureCoords is null)
+				throw new ArgumentNullException("textureCoords", "Texture coordinate array was null");
 
 			if(positions.Length % 3 != 0)
 				throw new ArgumentException("Position array must have a length which is a multiple of 3");
@@ -36,32 +47,19 @@ namespace GraphicsLib.Meshes{
 
 			mesh = new VertexPositionColorTexture[positions.Length];
 
-			unsafe{
-				fixed(Vector2* positionPtr = positions){
-					fixed(Vector2* texturePtr = textureCoords){
-						fixed(VertexPositionColorTexture* meshPtr = mesh){
-							Vector2* nfPosition = positionPtr;
-							Vector2* nfTexture = texturePtr;
-							VertexPositionColorTexture* nfMesh = meshPtr;
+			for(int i = 0; i < positions.Length; i++){
+				var tex = textureCoords[i];
+				if(tex.X < 0 || tex.X > 1 || tex.Y < 0 || tex.Y > 1)
+					throw new ArgumentOutOfRangeException($"textureCoords[{i}] had invalid values (X: {tex.X}, Y: {tex.Y}).  Expected values are between 0 and 1, inclusive.");
 
-							int length = positions.Length;
-							for(int i = 0; i < length; i++){
-								var tex = *nfTexture;
-								if(tex.X < 0 || tex.X > 1 || tex.Y < 0 || tex.Y > 1)
-									throw new ArgumentOutOfRangeException($"textureCoords[{i}] had invalid values (X: {tex.X}, Y: {tex.Y}).  Expected values are between 0 and 1, inclusive.");
-
-								nfMesh->Position = new Vector3(*nfPosition, 0);
-								nfMesh->TextureCoordinate = tex;
-								nfMesh->Color = color;
-
-								nfPosition++;
-								nfTexture++;
-								nfMesh++;
-							}
-						}
-					}
-				}
+				ref var rMesh = ref mesh[i];
+				rMesh.Position = new Vector3(positions[i], 0);
+				rMesh.TextureCoordinate = tex;
+				rMesh.Color = color;
 			}
+
+			defaultMesh = new VertexPositionColorTexture[mesh.Length];
+			Array.Copy(mesh, defaultMesh, mesh.Length);
 
 			ID = CoreMod.indirectMeshNextID++;
 			CoreMod.indirectMeshes.Add(ID, this);
@@ -76,8 +74,18 @@ namespace GraphicsLib.Meshes{
 		/// <param name="colors">The colors for this mesh's vertices</param>
 		/// <param name="shader">The shader to draw this mesh with</param>
 		public Mesh(Texture2D texture, Vector2[] positions, Vector2[] textureCoords, Color[] colors, Effect shader = null){
+			if(texture is null || texture.IsDisposed)
+				throw new ArgumentException("Invalid texture (null or disposed)");
+
 			this.texture = texture;
 			this.shader = shader;
+
+			if(positions is null)
+				throw new ArgumentNullException("positions", "Position array was null");
+			if(textureCoords is null)
+				throw new ArgumentNullException("textureCoords", "Texture coordinate array was null");
+			if(colors is null)
+				throw new ArgumentNullException("colors", "Colors array was null");
 
 			if(positions.Length % 3 != 0)
 				throw new ArgumentException("Position array must have a length which is a multiple of 3");
@@ -91,36 +99,19 @@ namespace GraphicsLib.Meshes{
 
 			mesh = new VertexPositionColorTexture[positions.Length];
 
-			unsafe{
-				fixed(Vector2* positionPtr = positions){
-					fixed(Vector2* texturePtr = textureCoords){
-						fixed(Color* colorPtr = colors){
-							fixed(VertexPositionColorTexture* meshPtr = mesh){
-								Vector2* nfPosition = positionPtr;
-								Vector2* nfTexture = texturePtr;
-								Color* nfColor = colorPtr;
-								VertexPositionColorTexture* nfMesh = meshPtr;
+			for(int i = 0; i < positions.Length; i++){
+				var tex = textureCoords[i];
+				if(tex.X < 0 || tex.X > 1 || tex.Y < 0 || tex.Y > 1)
+					throw new ArgumentOutOfRangeException($"textureCoords[{i}] had invalid values (X: {tex.X}, Y: {tex.Y}).  Expected values are between 0 and 1, inclusive.");
 
-								int length = positions.Length;
-								for(int i = 0; i < length; i++){
-									var tex = *nfTexture;
-									if(tex.X < 0 || tex.X > 1 || tex.Y < 0 || tex.Y > 1)
-										throw new ArgumentOutOfRangeException($"textureCoords[{i}] had invalid values (X: {tex.X}, Y: {tex.Y}).  Expected values are between 0 and 1, inclusive.");
-
-									nfMesh->Position = new Vector3(*nfPosition, 0);
-									nfMesh->TextureCoordinate = tex;
-									nfMesh->Color = *nfColor;
-
-									nfPosition++;
-									nfTexture++;
-									nfColor++;
-									nfMesh++;
-								}
-							}
-						}
-					}
-				}
+				ref var rMesh = ref mesh[i];
+				rMesh.Position = new Vector3(positions[i], 0);
+				rMesh.TextureCoordinate = tex;
+				rMesh.Color = colors[i];
 			}
+
+			defaultMesh = new VertexPositionColorTexture[mesh.Length];
+			Array.Copy(mesh, defaultMesh, mesh.Length);
 
 			ID = CoreMod.indirectMeshNextID++;
 			CoreMod.indirectMeshes.Add(ID, this);
@@ -136,23 +127,18 @@ namespace GraphicsLib.Meshes{
 			this.texture = texture;
 			this.shader = shader;
 
-			unsafe{
-				fixed(VertexPositionColorTexture* vertexPtr = vertices){
-					VertexPositionColorTexture* nfVertex = vertexPtr;
+			mesh = new VertexPositionColorTexture[vertices.Length];
 
-					int length = vertices.Length;
-					for(int i = 0; i < length; i++){
-						var tex = nfVertex->TextureCoordinate;
-
-						if(tex.X < 0 || tex.X > 1 || tex.Y < 0 || tex.Y > 1)
-							throw new ArgumentOutOfRangeException($"textureCoords[{i}] had invalid values (X: {tex.X}, Y: {tex.Y}).  Expected values are between 0 and 1, inclusive.");
-
-						nfVertex->Position.Z = 0;
-
-						nfVertex++;
-					}
-				}
+			for(int i = 0; i < vertices.Length; i++){
+				var tex = vertices[i].TextureCoordinate;
+				if(tex.X < 0 || tex.X > 1 || tex.Y < 0 || tex.Y > 1)
+					throw new ArgumentOutOfRangeException($"textureCoords[{i}] had invalid values (X: {tex.X}, Y: {tex.Y}).  Expected values are between 0 and 1, inclusive.");
 			}
+
+			Array.Copy(vertices, mesh, vertices.Length);
+
+			defaultMesh = new VertexPositionColorTexture[mesh.Length];
+			Array.Copy(mesh, defaultMesh, mesh.Length);
 
 			ID = CoreMod.indirectMeshNextID++;
 			CoreMod.indirectMeshes.Add(ID, this);
@@ -169,12 +155,7 @@ namespace GraphicsLib.Meshes{
 
 			device.Textures[0] = texture;
 
-			//Create the vertex buffer
-			VertexBuffer buffer = new VertexBuffer(device, typeof(VertexPositionColorTexture), mesh.Length, BufferUsage.WriteOnly);
-
-			device.SetVertexBuffer(null);
-			buffer.SetData(mesh);
-			device.SetVertexBuffer(buffer);
+			EnsureBuffersAreInitialized(device);
 
 			if(shader != null){
 				foreach(var pass in shader.CurrentTechnique.Passes){
@@ -188,6 +169,141 @@ namespace GraphicsLib.Meshes{
 				}
 			}else
 				device.DrawPrimitives(PrimitiveType.TriangleList, 0, mesh.Length / 3);
+		}
+
+		private VertexBuffer vBuffer;
+		private IndexBuffer iBuffer;
+
+		private int oldMeshLength = -1;
+
+		private void EnsureBuffersAreInitialized(GraphicsDevice device){
+			if(vBuffer is null || vBuffer.IsDisposed || oldMeshLength != mesh.Length)
+				vBuffer = new VertexBuffer(device, typeof(VertexPositionColorTexture), mesh.Length, BufferUsage.WriteOnly);
+
+			if(iBuffer is null || iBuffer.IsDisposed || oldMeshLength != mesh.Length){
+				iBuffer = new IndexBuffer(device, IndexElementSize.ThirtyTwoBits, mesh.Length, BufferUsage.WriteOnly);
+				iBuffer.SetData(GetIndexBuffer());
+			}
+			
+			//GraphicsDevice must not have a vertex buffer bound to it to set data on ANY VertexBuffer
+			device.SetVertexBuffer(null);
+			vBuffer.SetData(mesh);
+			device.SetVertexBuffer(vBuffer);
+
+			device.Indices = iBuffer;
+
+			oldMeshLength = mesh.Length;
+		}
+
+		private int[] GetIndexBuffer(){
+			int[] arr = new int[mesh.Length];
+			for(int i = 0; i < arr.Length; i++)
+				arr[i] = i;
+			return arr;
+		}
+
+		/// <summary>
+		/// Moves the entire <seealso cref="Mesh"/> by a given <paramref name="offset"/>
+		/// </summary>
+		/// <param name="offset"></param>
+		public void ApplyTranslation(Vector2 offset){
+			if(offset.HasNaNs())
+				throw new ArgumentException("Offset had a NaN component");
+
+			for(int i = 0; i < mesh.Length; i++){
+				ref var rMesh = ref mesh[i];
+				rMesh.Position.X += offset.X;
+				rMesh.Position.Y += offset.Y;
+			}
+		}
+
+		/// <summary>
+		/// Rotates the entire <seealso cref="Mesh"/> around a given world postition, <paramref name="rotationOrigin"/>, by the given <paramref name="radians"/>
+		/// </summary>
+		/// <param name="rotationOrigin">The world location used as the "anchor" for rotating the mesh</param>
+		/// <param name="radians">The rotation</param>
+		public void ApplyRotation(Vector2 rotationOrigin, float radians){
+			if(rotationOrigin.HasNaNs())
+				throw new ArgumentException("Rotation origin had a NaN component");
+
+			for(int i = 0; i < mesh.Length; i++){
+				ref var vertex = ref mesh[i];
+
+				if(vertex.Position.X != rotationOrigin.X || vertex.Position.Y != rotationOrigin.Y){
+					//Only move the vertex if it isn't the rotation origin
+					Vector2 rotated = vertex.Position.XY();
+							
+					rotated = rotated.RotatedBy(radians, rotationOrigin);
+
+					vertex.Position.X = rotated.X;
+					vertex.Position.Y = rotated.Y;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Scales the mesh along both axes by the given <paramref name="scale"/>
+		/// </summary>
+		/// <param name="scale">The scale factor</param>
+		/// <param name="scaleCenter">The world position used as the "anchor" for scaling the mesh</param>
+		/// <param name="scaleAxesDirection">(Optional) The direction of the X-axis for the scaling to occur on.  Defaults to 0</param>
+		public void ApplyScale(float scale, Vector2 scaleCenter, float? scaleAxesDirection = null)
+			=> ApplyScale(new Vector2(scale), scaleCenter, scaleAxesDirection);
+
+		/// <summary>
+		/// Scales the mesh along both axes by the given <paramref name="scale"/>
+		/// </summary>
+		/// <param name="scale">The scale factor</param>
+		/// <param name="scaleCenter">The world position used as the "anchor" for scaling the mesh</param>
+		/// <param name="scaleAxesDirection">(Optional) The direction of the X-axis for the scaling to occur on.  Defaults to 0</param>
+		public void ApplyScale(Vector2 scale, Vector2 scaleCenter, float? scaleAxesDirection = null){
+			float dir = scaleAxesDirection ?? 0;
+
+			if(scale.HasNaNs())
+				throw new ArgumentException("Scale had a NaN component");
+
+			if(scale.X == 0 || scale.Y == 0)
+				throw new ArgumentException("Scale had a zero component");
+
+			for(int i = 0; i < mesh.Length; i++){
+				ref var vertex = ref mesh[i];
+
+				//Don't do anything if the center is the same as the vertex
+				Vector2 scaled = vertex.Position.XY();
+				if(scaleCenter == scaled)
+					continue;
+
+				//Get the offset from the center, then project it onto the axes
+				Vector2 diff = scaled - scaleCenter;
+
+				//Apply the scale on the normal X/Y axes, then just rotate the resulting vector
+				diff = diff.RotatedBy(-dir);
+
+				diff *= scale;
+
+				diff = diff.RotatedBy(dir);
+
+				vertex.Position.X = scaleCenter.X + diff.X;
+				vertex.Position.Y = scaleCenter.Y + diff.Y;
+			}
+		}
+
+		public void Reset(){
+			Array.Copy(defaultMesh, mesh, mesh.Length);
+		}
+
+		internal void Dispose(){
+			vBuffer?.Dispose();
+			vBuffer = null;
+
+			iBuffer?.Dispose();
+			iBuffer = null;
+
+			mesh = null;
+			defaultMesh = null;
+
+			texture = null;
+			shader = null;
 		}
 	}
 }

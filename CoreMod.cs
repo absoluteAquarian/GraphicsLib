@@ -35,11 +35,8 @@ namespace GraphicsLib{
 
 			if(indirectMeshes != null){
 				//Release any references
-				foreach(var mesh in indirectMeshes.Values){
-					mesh.texture = null;
-					mesh.mesh = null;
-					mesh.shader = null;
-				}
+				foreach(var mesh in indirectMeshes.Values)
+					mesh.Dispose();
 			}
 
 			indirectMeshes = null;
@@ -249,7 +246,7 @@ namespace GraphicsLib{
 							mesh.mesh[slot].Position = new Vector3(position, 0);
 							return true;
 						case "texCoord":
-							CheckArg(2, out Vector2 coordinate, "int id, \"coordinate\", Vector2 coordinate");
+							CheckArg(2, out Vector2 coordinate, "int id, \"texCoord\", Vector2 texCoord");
 							CheckSlot(out slot);
 
 							if(coordinate.X < 0 || coordinate.X > 1 || coordinate.Y < 0 || coordinate.Y > 1)
@@ -281,6 +278,7 @@ namespace GraphicsLib{
 			}
 
 			// TODO: people would like an easy Zenith trail implementation... find it in the 1.4 source and implement it in GraphicsLib
+			// TOOD: add more Mesh manipulation, such as scaling, rotation, flipping and scaling
 		}
 
 		/// <summary>
