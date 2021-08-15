@@ -336,7 +336,7 @@ namespace GraphicsLib.Meshes{
 
 			if(iBuffer is null || iBuffer.IsDisposed || oldMeshLength != mesh.Length){
 				iBuffer = new IndexBuffer(device, IndexElementSize.ThirtyTwoBits, mesh.Length, BufferUsage.WriteOnly);
-				iBuffer.SetData(GetDefaultIndexBuffer());
+				iBuffer.SetData(iBufferArr = GetDefaultIndexBuffer());
 
 				customIndexBuffer = false;
 			}
@@ -389,6 +389,8 @@ namespace GraphicsLib.Meshes{
 
 			iBuffer.SetData(indices);
 			iBufferArr = (int[])indices.Clone();
+
+			customIndexBuffer = true;
 		}
 
 		/// <summary>
