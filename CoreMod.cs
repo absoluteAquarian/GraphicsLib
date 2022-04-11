@@ -32,17 +32,17 @@ namespace GraphicsLib {
 			ThreadUtils.InvokeOnMainThread(() => {
 				PrimitiveDrawing.simpleVertexEffect?.Dispose();
 				PrimitiveDrawing.simpleVertexEffect = null;
+				
+				methodArgs = null;
+
+				if(indirectMeshes != null) {
+					//Release any references
+					foreach(var mesh in indirectMeshes.Values)
+						mesh.Dispose();
+				}
+
+				indirectMeshes = null;
 			});
-
-			methodArgs = null;
-
-			if(indirectMeshes != null) {
-				//Release any references
-				foreach(var mesh in indirectMeshes.Values)
-					mesh.Dispose();
-			}
-
-			indirectMeshes = null;
 		}
 
 		public override object Call(params object[] args) {
