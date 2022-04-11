@@ -2,12 +2,12 @@
 using System;
 using Terraria;
 
-namespace GraphicsLib.Utility.Extensions{
-	public static partial class Extensions{
-		public static Vector3 ScreenCoord(this Vector2 vector){
+namespace GraphicsLib.Utility.Extensions {
+	public static partial class Extensions {
+		public static Vector3 ScreenCoord(this Vector2 vector) {
 			//"vector" is a point on the screen... given the zoom is 1x
 			//Let's correct that
-			Vector2 screenCenter = new Vector2(Main.screenWidth / 2f, Main.screenHeight / 2f);
+			Vector2 screenCenter = new(Main.screenWidth / 2f, Main.screenHeight / 2f);
 			Vector2 diff = vector - screenCenter;
 			diff *= Main.GameZoomTarget;
 			vector = screenCenter + diff;
@@ -18,7 +18,7 @@ namespace GraphicsLib.Utility.Extensions{
 		/// <summary>
 		/// Get the angle between two vectors
 		/// </summary>
-		public static float AngleBetween(this Vector2 source, Vector2 other){
+		public static float AngleBetween(this Vector2 source, Vector2 other) {
 			float srcAngle = source.ToRotation();
 			float otherAngle = other.ToRotation();
 
@@ -48,7 +48,7 @@ namespace GraphicsLib.Utility.Extensions{
 		public static Vector2 ProjectOnto(this Vector2 orig, Vector2 axis)
 			=> orig.Length() * (float)Math.Cos(orig.AngleBetween(axis)) * axis.Unit();
 
-		public static float DirectionTo(this Vector2 source, Vector2 destination)
+		public static float DirectionToRotation(this Vector2 source, Vector2 destination)
 			=> (destination - source).ToRotation();
 	}
 }

@@ -1,11 +1,12 @@
 ﻿using GraphicsLib.Examples;
 using Microsoft.Xna.Framework;
 using Terraria;
+using Terraria.DataStructures;
 using Terraria.ID;
 using Terraria.ModLoader;
 
-namespace GraphicsLib{
-	public class SpawnCommand : ModCommand{
+namespace GraphicsLib {
+	public class SpawnCommand : ModCommand {
 		public override string Command => "spawnobj";
 
 		public override CommandType Type => CommandType.Chat;
@@ -14,27 +15,28 @@ namespace GraphicsLib{
 
 		public override string Description => "Spawns an example from GraphicsLib";
 
-		public override void Action(CommandCaller caller, string input, string[] args){
-			if(args.Length < 1){
+		public override void Action(CommandCaller caller, string input, string[] args) {
+			if(args.Length < 1) {
 				caller.Reply("Expected a positive integer argument.", Color.Red);
 				return;
 			}
 
-			if(args.Length > 1){
+			if(args.Length > 1) {
 				caller.Reply("Too many arguments specified.", Color.Red);
 				return;
 			}
 
-			if(!uint.TryParse(args[0], out uint type)){
+			if(!uint.TryParse(args[0], out uint type)) {
 				caller.Reply("Invalid argument", Color.Red);
 				return;
 			}
 
 			int spawned;
-			switch(type){
+			switch(type) {
 				case 0:
 					//Example Line: Velocity
-					spawned = Projectile.NewProjectile(caller.Player.Center - new Vector2(0, 80),
+					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand(),
+						caller.Player.Center - new Vector2(0, 80),
 						Main.rand.NextVector2Unit() * 7f,
 						ModContent.ProjectileType<ExampleLine>(),
 						0,
@@ -46,7 +48,8 @@ namespace GraphicsLib{
 					break;
 				case 1:
 					//Example Line: Previous Postions
-					spawned = Projectile.NewProjectile(caller.Player.Center - new Vector2(0, 80),
+					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand(),
+						caller.Player.Center - new Vector2(0, 80),
 						Main.rand.NextVector2Unit() * 7f,
 						ModContent.ProjectileType<ExampleLine>(),
 						0,
@@ -58,7 +61,8 @@ namespace GraphicsLib{
 					break;
 				case 2:
 					//Example Line: Previous Postions, Lerped Color
-					spawned = Projectile.NewProjectile(caller.Player.Center - new Vector2(0, 80),
+					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand(),
+						caller.Player.Center - new Vector2(0, 80),
 						Main.rand.NextVector2Unit() * 7f,
 						ModContent.ProjectileType<ExampleLine>(),
 						0,
@@ -70,7 +74,8 @@ namespace GraphicsLib{
 					break;
 				case 3:
 					//Example Scale Mesh: Scale Vertically
-					spawned = Projectile.NewProjectile(caller.Player.Center - new Vector2(0, 80),
+					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand(),
+						caller.Player.Center - new Vector2(0, 80),
 						Main.rand.NextVector2Unit() * 7f,
 						ModContent.ProjectileType<ExampleScaleMesh>(),
 						0,
@@ -82,7 +87,8 @@ namespace GraphicsLib{
 					break;
 				case 4:
 					//Example Scale Mesh: Scale Horizontally
-					spawned = Projectile.NewProjectile(caller.Player.Center - new Vector2(0, 80),
+					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand(),
+						caller.Player.Center - new Vector2(0, 80),
 						Main.rand.NextVector2Unit() * 7f,
 						ModContent.ProjectileType<ExampleScaleMesh>(),
 						0,
@@ -94,7 +100,8 @@ namespace GraphicsLib{
 					break;
 				case 5:
 					//Example Scale Mesh: Rotate, then Scale
-					spawned = Projectile.NewProjectile(caller.Player.Center - new Vector2(0, 80),
+					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand(),
+						caller.Player.Center - new Vector2(0, 80),
 						Main.rand.NextVector2Unit() * 7f,
 						ModContent.ProjectileType<ExampleScaleMesh>(),
 						0,

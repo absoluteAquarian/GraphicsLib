@@ -1,5 +1,6 @@
 using GraphicsLib.Meshes;
 using GraphicsLib.Primitives;
+using GraphicsLib.Utility;
 using GraphicsLib.Utility.Extensions;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -11,14 +12,14 @@ using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
 
-namespace GraphicsLib{
-	public class CoreMod : Mod{
+namespace GraphicsLib {
+	public class CoreMod : Mod {
 		private static Dictionary<MethodInfo, string[]> methodArgs;
 
 		internal static int indirectMeshNextID;
 		internal static Dictionary<int, Mesh> indirectMeshes;
 
-		public override void Load(){
+		public override void Load() {
 			if(Main.netMode != NetmodeID.Server)
 				PrimitiveDrawing.Init(Main.graphics.GraphicsDevice);
 
@@ -27,13 +28,15 @@ namespace GraphicsLib{
 			indirectMeshes = new Dictionary<int, Mesh>();
 		}
 
-		public override void Unload(){
-			PrimitiveDrawing.simpleVertexEffect?.Dispose();
-			PrimitiveDrawing.simpleVertexEffect = null;
+		public override void Unload() {
+			ThreadUtils.InvokeOnMainThread(() => {
+				PrimitiveDrawing.simpleVertexEffect?.Dispose();
+				PrimitiveDrawing.simpleVertexEffect = null;
+			});
 
 			methodArgs = null;
 
-			if(indirectMeshes != null){
+			if(indirectMeshes != null) {
 				//Release any references
 				foreach(var mesh in indirectMeshes.Values)
 					mesh.Dispose();
@@ -42,32 +45,32 @@ namespace GraphicsLib{
 			indirectMeshes = null;
 		}
 
-		public override object Call(params object[] args){
+		public override object Call(params object[] args) {
 			if(args is null)
-				throw new ArgumentNullException("args");
+				throw new ArgumentNullException(nameof(args));
 
 			if(args.Length < 2)
 				throw new ArgumentException("Too few arguments were provided");
 
-			if(!(args[0] is string function))
+			if(args[0] is not string function)
 				throw new ArgumentException("Expected a function name for the first argument");
 
-			void CheckArgsLength(int expected, params string[] argNames){
+			void CheckArgsLength(int expected, params string[] argNames) {
 				if(args.Length != expected)
 					throw new ArgumentOutOfRangeException($"Expected {expected} arguments for Mod.Call(\"{function}\", {string.Join(",", argNames)}), got {args.Length} arguments instead");
 			}
 
-			void CheckArg<TExpected>(int argSlot, out TExpected validInstance, string additionalArgs = null){
+			void CheckArg<TExpected>(int argSlot, out TExpected validInstance, string additionalArgs = null) {
 				if(additionalArgs != null)
 					additionalArgs = ", " + additionalArgs;
 
-				if(!(args[argSlot] is TExpected expected))
+				if(args[argSlot] is not TExpected expected)
 					throw new ArgumentException($"Argument {argSlot} for Mod.Call(\"{function}\"{additionalArgs ?? ""}) must be of type {typeof(TExpected).FullNameUpgraded()}");
 
 				validInstance = expected;
 			}
 
-			switch(function){
+			switch(function) {
 				case "Draw Connected Lines, Single Color":
 					CheckArgsLength(3, GetMethodArgs(typeof(PrimitiveDrawing), "DrawLineStrip", BindingFlags.Public | BindingFlags.Static, typeof(Vector2[]), typeof(Color)));
 					CheckArg(1, out Vector2[] points);
@@ -173,7 +176,7 @@ namespace GraphicsLib{
 					CheckArg(4, out color);
 					CheckArg(5, out Effect shader);
 
-					Mesh mesh = new Mesh(texture, positions, textureCoordinates, color, shader);
+					Mesh mesh = new(texture, positions, textureCoordinates, color, shader);
 					mesh.Draw();
 
 					return mesh.ID;
@@ -184,7 +187,7 @@ namespace GraphicsLib{
 					CheckArg(3, out textureCoordinates);
 					CheckArg(4, out colors);
 					CheckArg(5, out shader);
-					
+
 					mesh = new Mesh(texture, positions, textureCoordinates, colors, shader);
 					mesh.Draw();
 
@@ -211,12 +214,12 @@ namespace GraphicsLib{
 				case "Modify Mesh":
 					//Array field will need an additional argument specifying the slot to modify
 					string meshArg;
-					try{
+					try {
 						CheckArgsLength(3, "int id", "string field", "object value");
 						CheckArg(1, out id);
 						CheckArg(2, out meshArg);
-					}catch{
-						if(args.Length >= 3){
+					} catch {
+						if(args.Length >= 3) {
 							CheckArg(1, out id);
 							CheckArg(2, out meshArg);
 
@@ -224,21 +227,21 @@ namespace GraphicsLib{
 								throw;
 
 							CheckArgsLength(4, "int id", "string arrayField", "object value", "int slot");
-						}else
+						} else
 							throw;
 					}
 
 					if(!indirectMeshes.TryGetValue(id, out mesh))
 						throw new ArgumentException($"ID {id} does not refer to a valid cached Mesh instance");
 
-					void CheckSlot(out int slot){
+					void CheckSlot(out int slot) {
 						CheckArg(3, out slot);
 
 						if(slot < 0 || slot > mesh.mesh.Length)
 							throw new IndexOutOfRangeException($"Array slot requested ({slot}) was outside the bounds of the mesh's vertex array ({mesh.mesh.Length})");
 					}
 
-					switch(meshArg){
+					switch(meshArg) {
 						case "position":
 							CheckArg(2, out Vector2 position, "int id, \"position\", Vector2 position");
 							CheckSlot(out int slot);
@@ -346,7 +349,7 @@ namespace GraphicsLib{
 		/// <param name="method">The name of the method</param>
 		/// <param name="flags">The flags used when searching for the method</param>
 		/// <param name="argTypes">(Optional) The types of the method arguments.  For methods with no overloads, this can be ignored.</param>
-		private static string[] GetMethodArgs(Type type, string method, BindingFlags flags, params Type[] argTypes){
+		private static string[] GetMethodArgs(Type type, string method, BindingFlags flags, params Type[] argTypes) {
 			MethodInfo methodInfo = null;
 			if(argTypes.Length == 0)
 				methodInfo = type.GetMethod(method, flags);

@@ -1,26 +1,29 @@
-﻿using GraphicsLib.Utility.Extensions;
+﻿using GraphicsLib.Utility;
+using GraphicsLib.Utility.Extensions;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using Terraria;
 
-namespace GraphicsLib.Primitives{
-	public static class PrimitiveDrawing{
+namespace GraphicsLib.Primitives {
+	public static class PrimitiveDrawing {
 		internal static BasicEffect simpleVertexEffect;
-		internal static void Init(GraphicsDevice device){
-			simpleVertexEffect = new BasicEffect(device){
-				VertexColorEnabled = true
-			};
+		internal static void Init(GraphicsDevice device) {
+			ThreadUtils.InvokeOnMainThread(() => {
+				simpleVertexEffect = new BasicEffect(device) {
+					VertexColorEnabled = true
+				};
+			});
 		}
 
-		public static void DrawLineStrip(Vector2[] points, Color color){
+		public static void DrawLineStrip(Vector2[] points, Color color) {
 			if(points is null)
-				throw new ArgumentNullException("points");
+				throw new ArgumentNullException(nameof(points));
 
 			if(points.Length < 2)
 				throw new ArgumentException("Too few points provided to draw a line");
 
-			PrimitivePacket packet = new PrimitivePacket(PrimitiveType.LineStrip);
+			PrimitivePacket packet = new(PrimitiveType.LineStrip);
 
 			packet.AddDraw(ToPrimitive(points[0], color), ToPrimitive(points[1], color));
 			for(int i = 2; i < points.Length; i++)
@@ -29,16 +32,16 @@ namespace GraphicsLib.Primitives{
 			SubmitPacket(packet);
 		}
 
-		public static void DrawLineStrip(Vector2[] points, Color start, Color end){
+		public static void DrawLineStrip(Vector2[] points, Color start, Color end) {
 			if(points is null)
-				throw new ArgumentNullException("points");
+				throw new ArgumentNullException(nameof(points));
 
 			if(points.Length < 2)
 				throw new ArgumentException("Too few points provided to draw a line");
 
 			float lerpStep = 1f / (points.Length - 1);
 
-			PrimitivePacket packet = new PrimitivePacket(PrimitiveType.LineStrip);
+			PrimitivePacket packet = new(PrimitiveType.LineStrip);
 
 			packet.AddDraw(ToPrimitive(points[0], Color.Lerp(start, end, 0)), ToPrimitive(points[1], Color.Lerp(start, end, lerpStep)));
 			for(int i = 2; i < points.Length; i++)
@@ -47,19 +50,19 @@ namespace GraphicsLib.Primitives{
 			SubmitPacket(packet);
 		}
 
-		public static void DrawLineStrip(Vector2[] points, Color[] colors){
+		public static void DrawLineStrip(Vector2[] points, Color[] colors) {
 			if(points is null)
-				throw new ArgumentNullException("points");
+				throw new ArgumentNullException(nameof(points));
 			if(colors is null)
-				throw new ArgumentNullException("colors");
+				throw new ArgumentNullException(nameof(colors));
 
 			if(colors.Length != points.Length)
-				throw new ArgumentException("Length of colors array must match length of points array", "colors");
+				throw new ArgumentException("Length of colors array must match length of points array", nameof(colors));
 
 			if(points.Length < 2)
 				throw new ArgumentException("Too few points provided to draw a line");
 
-			PrimitivePacket packet = new PrimitivePacket(PrimitiveType.LineStrip);
+			PrimitivePacket packet = new(PrimitiveType.LineStrip);
 
 			packet.AddDraw(ToPrimitive(points[0], colors[0]), ToPrimitive(points[1], colors[0]));
 			for(int i = 2; i < points.Length; i++)
@@ -68,65 +71,65 @@ namespace GraphicsLib.Primitives{
 			SubmitPacket(packet);
 		}
 
-		public static void DrawLineList(Vector2[] points, Color color){
+		public static void DrawLineList(Vector2[] points, Color color) {
 			if(points is null)
-				throw new ArgumentNullException("points");
+				throw new ArgumentNullException(nameof(points));
 
 			if(points.Length % 2 != 0)
-				throw new ArgumentException("Length of points array must be a multiple of 2", "points");
+				throw new ArgumentException("Length of points array must be a multiple of 2", nameof(points));
 
 			//Nothing to draw, so don't
 			if(points.Length < 2)
 				throw new ArgumentException("Too few points provided to draw a line");
 
-			PrimitivePacket packet = new PrimitivePacket(PrimitiveType.LineList);
+			PrimitivePacket packet = new(PrimitiveType.LineList);
 			for(int i = 0; i < points.Length; i += 2)
 				packet.AddDraw(ToPrimitive(points[i], color), ToPrimitive(points[i + 1], color));
 
 			SubmitPacket(packet);
 		}
 
-		public static void DrawLineList(Vector2[] points, Color[] colors){
+		public static void DrawLineList(Vector2[] points, Color[] colors) {
 			if(points is null)
-				throw new ArgumentNullException("points");
+				throw new ArgumentNullException(nameof(points));
 			if(colors is null)
-				throw new ArgumentNullException("colors");
+				throw new ArgumentNullException(nameof(colors));
 
 			if(points.Length % 2 != 0)
-				throw new ArgumentException("Length of points array must be a multiple of 2", "points");
+				throw new ArgumentException("Length of points array must be a multiple of 2", nameof(points));
 			if(colors.Length != points.Length)
-				throw new ArgumentException("Length of colors array must match length of points array", "colors");
+				throw new ArgumentException("Length of colors array must match length of points array", nameof(colors));
 
 			//Nothing to draw, so don't
 			if(points.Length < 2)
 				return;
 
-			PrimitivePacket packet = new PrimitivePacket(PrimitiveType.LineList);
+			PrimitivePacket packet = new(PrimitiveType.LineList);
 			for(int i = 0; i < points.Length; i += 2)
 				packet.AddDraw(ToPrimitive(points[i], colors[i]), ToPrimitive(points[i + 1], colors[i + 1]));
 
 			SubmitPacket(packet);
 		}
 
-		public static void DrawHollowRectangle(Vector2 coordTL, Vector2 coordBR, Color colorTL, Color colorTR, Color colorBL, Color colorBR){
-			Vector2 tr = new Vector2(coordBR.X, coordTL.Y);
-			Vector2 bl = new Vector2(coordTL.X, coordBR.Y);
+		public static void DrawHollowRectangle(Vector2 coordTL, Vector2 coordBR, Color colorTL, Color colorTR, Color colorBL, Color colorBR) {
+			Vector2 tr = new(coordBR.X, coordTL.Y);
+			Vector2 bl = new(coordTL.X, coordBR.Y);
 
-			PrimitivePacket packet = new PrimitivePacket(PrimitiveType.LineStrip);
+			PrimitivePacket packet = new(PrimitiveType.LineStrip);
 
 			packet.AddDraw(ToPrimitive(coordTL, colorTL), ToPrimitive(tr, colorTR));
-			packet.AddDraw(ToPrimitive(tr, colorTR),      ToPrimitive(coordBR, colorBR));
+			packet.AddDraw(ToPrimitive(tr, colorTR), ToPrimitive(coordBR, colorBR));
 			packet.AddDraw(ToPrimitive(coordBR, colorBR), ToPrimitive(bl, colorBL));
-			packet.AddDraw(ToPrimitive(bl, colorBL),      ToPrimitive(coordTL, colorTL));
+			packet.AddDraw(ToPrimitive(bl, colorBL), ToPrimitive(coordTL, colorTL));
 
 			SubmitPacket(packet);
 		}
 
-		public static void DrawFilledRectangle(Vector2 coordTL, Vector2 coordBR, Color colorTL, Color colorTR, Color colorBL, Color colorBR){
-			Vector2 tr = new Vector2(coordBR.X, coordTL.Y);
-			Vector2 bl = new Vector2(coordTL.X, coordBR.Y);
+		public static void DrawFilledRectangle(Vector2 coordTL, Vector2 coordBR, Color colorTL, Color colorTR, Color colorBL, Color colorBR) {
+			Vector2 tr = new(coordBR.X, coordTL.Y);
+			Vector2 bl = new(coordTL.X, coordBR.Y);
 
-			PrimitivePacket packet = new PrimitivePacket(PrimitiveType.TriangleList);
+			PrimitivePacket packet = new(PrimitiveType.TriangleList);
 
 			packet.AddDraw(ToPrimitive(coordTL, colorTL), ToPrimitive(tr, colorTR), ToPrimitive(bl, colorBL));
 			packet.AddDraw(ToPrimitive(bl, colorBL), ToPrimitive(tr, colorTR), ToPrimitive(coordBR, colorBR));
@@ -134,8 +137,8 @@ namespace GraphicsLib.Primitives{
 			SubmitPacket(packet);
 		}
 
-		public static void DrawHollowCircle(Vector2 center, float radius, Color color){
-			PrimitivePacket packet = new PrimitivePacket(PrimitiveType.LineStrip);
+		public static void DrawHollowCircle(Vector2 center, float radius, Color color) {
+			PrimitivePacket packet = new(PrimitiveType.LineStrip);
 
 			Vector2 rotate = Vector2.UnitX * radius;
 			packet.AddDraw(ToPrimitive(rotate + center, color), ToPrimitive(rotate.RotatedBy(MathHelper.TwoPi / 360f) + center, color));
@@ -145,14 +148,14 @@ namespace GraphicsLib.Primitives{
 			SubmitPacket(packet);
 		}
 
-		public static void DrawFilledCircle(Vector2 center, float radius, Color color){
-			PrimitivePacket packet = new PrimitivePacket(PrimitiveType.TriangleList);
+		public static void DrawFilledCircle(Vector2 center, float radius, Color color) {
+			PrimitivePacket packet = new(PrimitiveType.TriangleList);
 
 			Vector2 rotate = Vector2.UnitX * radius;
 			packet.AddDraw(ToPrimitive(rotate + center, color),
 				ToPrimitive(rotate.RotatedBy(MathHelper.TwoPi / 360f) + center, color),
 				ToPrimitive(center, color));
-			for(int i = 1; i < 360; i++){
+			for(int i = 1; i < 360; i++) {
 				packet.AddDraw(ToPrimitive(rotate.RotatedBy(MathHelper.TwoPi / 360 * i) + center, color),
 					ToPrimitive(rotate.RotatedBy(MathHelper.TwoPi / 360f * (i + 1)) + center, color),
 					ToPrimitive(center, color));
@@ -161,14 +164,14 @@ namespace GraphicsLib.Primitives{
 			SubmitPacket(packet);
 		}
 
-		public static void DrawFilledCircle(Vector2 center, float radius, Color color, Color edge){
-			PrimitivePacket packet = new PrimitivePacket(PrimitiveType.TriangleList);
+		public static void DrawFilledCircle(Vector2 center, float radius, Color color, Color edge) {
+			PrimitivePacket packet = new(PrimitiveType.TriangleList);
 
 			Vector2 rotate = Vector2.UnitX * radius;
 			packet.AddDraw(ToPrimitive(rotate + center, edge),
 				ToPrimitive(rotate.RotatedBy(MathHelper.TwoPi / 360f) + center, edge),
 				ToPrimitive(center, color));
-			for(int i = 1; i < 360; i++){
+			for(int i = 1; i < 360; i++) {
 				packet.AddDraw(ToPrimitive(rotate.RotatedBy(MathHelper.TwoPi / 360 * i) + center, edge),
 					ToPrimitive(rotate.RotatedBy(MathHelper.TwoPi / 360f * (i + 1)) + center, edge),
 					ToPrimitive(center, color));
@@ -177,49 +180,49 @@ namespace GraphicsLib.Primitives{
 			SubmitPacket(packet);
 		}
 
-		public static void DrawTriangleList(Vector2[] points, Color color){
+		public static void DrawTriangleList(Vector2[] points, Color color) {
 			if(points is null)
-				throw new ArgumentNullException("points");
+				throw new ArgumentNullException(nameof(points));
 
 			if(points.Length % 3 != 0)
-				throw new ArgumentException("Length of points array must be a multiple of 3", "points");
+				throw new ArgumentException("Length of points array must be a multiple of 3", nameof(points));
 
 			//Nothing to draw, so don't
 			if(points.Length < 3)
 				throw new ArgumentException("Too few points provided to draw a triangle");
 
-			PrimitivePacket packet = new PrimitivePacket(PrimitiveType.TriangleList);
+			PrimitivePacket packet = new(PrimitiveType.TriangleList);
 			for(int i = 0; i < points.Length; i += 3)
 				packet.AddDraw(ToPrimitive(points[i], color), ToPrimitive(points[i + 1], color), ToPrimitive(points[i + 2], color));
 
 			SubmitPacket(packet);
 		}
 
-		public static void DrawTriangleList(Vector2[] points, Color[] colors){
+		public static void DrawTriangleList(Vector2[] points, Color[] colors) {
 			if(points is null)
-				throw new ArgumentNullException("points");
+				throw new ArgumentNullException(nameof(points));
 			if(colors is null)
-				throw new ArgumentNullException("colors");
+				throw new ArgumentNullException(nameof(colors));
 
 			if(points.Length % 3 != 0)
-				throw new ArgumentException("Length of points array must be a multiple of 3", "points");
+				throw new ArgumentException("Length of points array must be a multiple of 3", nameof(points));
 			if(colors.Length != points.Length)
-				throw new ArgumentException("Length of colors array must match length of points array", "colors");
+				throw new ArgumentException("Length of colors array must match length of points array", nameof(colors));
 
 			//Nothing to draw, so don't
 			if(points.Length < 3)
 				throw new ArgumentException("Too few points provided to draw a triangle");
 
-			PrimitivePacket packet = new PrimitivePacket(PrimitiveType.LineList);
+			PrimitivePacket packet = new(PrimitiveType.LineList);
 			for(int i = 0; i < points.Length; i += 3)
 				packet.AddDraw(ToPrimitive(points[i], colors[i]), ToPrimitive(points[i + 1], colors[i + 1]), ToPrimitive(points[i + 2], colors[i + 2]));
 
 			SubmitPacket(packet);
 		}
 
-		public static void SubmitPacket(PrimitivePacket packet){
+		public static void SubmitPacket(PrimitivePacket packet) {
 			if(packet is null)
-				throw new ArgumentNullException("packet");
+				throw new ArgumentNullException(nameof(packet));
 
 			if(packet.draws is null)
 				throw new ArgumentNullException("packet.draws");
@@ -227,7 +230,7 @@ namespace GraphicsLib.Primitives{
 			if(packet.draws.Count <= 0)
 				throw new ArgumentOutOfRangeException("packet.draws.Count", "Packet does not have any primitive data attached to it");
 
-			VertexBuffer buffer = new VertexBuffer(Main.graphics.GraphicsDevice, typeof(VertexPositionColor), packet.draws.Count, BufferUsage.WriteOnly);
+			VertexBuffer buffer = new(Main.graphics.GraphicsDevice, typeof(VertexPositionColor), packet.draws.Count, BufferUsage.WriteOnly);
 
 			//Calculate the number of primitives that will be drawn
 			int count = packet.GetPrimitivesCount();
@@ -249,7 +252,7 @@ namespace GraphicsLib.Primitives{
 		/// </summary>
 		/// <param name="worldPos">The absolute world position</param>
 		/// <param name="color">The draw color</param>
-		public static VertexPositionColor ToPrimitive(Vector2 worldPos, Color color){
+		public static VertexPositionColor ToPrimitive(Vector2 worldPos, Color color) {
 			Vector3 pos = (worldPos - Main.screenPosition).ScreenCoord();
 			if(Main.LocalPlayer.gravDir == -1)
 				pos.Y = -pos.Y;

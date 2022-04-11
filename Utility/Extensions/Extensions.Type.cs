@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace GraphicsLib.Utility.Extensions{
-	public static partial class Extensions{
-		private static readonly Dictionary<Type, string> dealias = new Dictionary<Type, string>(){
+namespace GraphicsLib.Utility.Extensions {
+	public static partial class Extensions {
+		private static readonly Dictionary<Type, string> dealias = new() {
 			[typeof(bool)] = "bool",
 			[typeof(sbyte)] = "sbyte",
 			[typeof(short)] = "short",
@@ -24,7 +24,7 @@ namespace GraphicsLib.Utility.Extensions{
 			[typeof(object)] = "object"
 		};
 
-		public static string FullNameUpgraded(this Type type){
+		public static string FullNameUpgraded(this Type type) {
 			if(type.IsGenericTypeDefinition)
 				throw new ArgumentException("Type argument was a type definition");
 
@@ -34,23 +34,23 @@ namespace GraphicsLib.Utility.Extensions{
 			StringBuilder sb;
 			const int size = 20;
 
-			void GetSubTypesString(){
+			void GetSubTypesString() {
 				var subTypes = type.GetGenericArguments();
 
 				sb.Append(subTypes[0].FullNameUpgraded());
-				for(int i = 1; i < subTypes.Length; i++){
+				for(int i = 1; i < subTypes.Length; i++) {
 					sb.Append(", ");
 					sb.Append(subTypes[i].FullNameUpgraded());
 				}
 			}
 
 			//Special treatment for Nullable<T> and ValueTuple<>
-			if(type.IsGenericType){
+			if(type.IsGenericType) {
 				var genDef = type.GetGenericTypeDefinition();
 
 				if(genDef == typeof(Nullable<>))
 					return type.GetGenericArguments()[0].FullNameUpgraded() + "?";
-				else if(genDef == typeof(ValueTuple<>)){
+				else if(genDef == typeof(ValueTuple<>)) {
 					sb = new StringBuilder(size);
 
 					sb.Append('(');
@@ -63,7 +63,7 @@ namespace GraphicsLib.Utility.Extensions{
 
 			sb = new StringBuilder(size);
 
-			sb.Append(type.Name.Substring(0, type.Name.IndexOf('`')));
+			sb.Append(type.Name.AsSpan(0, type.Name.IndexOf('`')));
 			sb.Append('<');
 			GetSubTypesString();
 			sb.Append('>');

@@ -2,11 +2,11 @@
 using System;
 using System.Collections.Generic;
 
-namespace GraphicsLib.Primitives{
+namespace GraphicsLib.Primitives {
 	// <summary>
 	/// A package of primitive data to be processed by <seealso cref="PrimitiveDrawing"/>
 	/// </summary>
-	public class PrimitivePacket : IDisposable{
+	public class PrimitivePacket : IDisposable {
 		public PrimitiveType type;
 
 		internal List<VertexPositionColor> draws;
@@ -16,7 +16,7 @@ namespace GraphicsLib.Primitives{
 		/// </summary>
 		/// <param name="type">The type of primitives this packet can cache</param>
 		/// <param name="drawDepth">The desired draw depth for all primitives submitted to this packet</param>
-		public PrimitivePacket(PrimitiveType type){
+		public PrimitivePacket(PrimitiveType type) {
 			this.type = type;
 
 			draws = new List<VertexPositionColor>();
@@ -26,13 +26,13 @@ namespace GraphicsLib.Primitives{
 		/// Adds a new primitive to the draw list
 		/// </summary>
 		/// <param name="additions">The sequence of <seealso cref="VertexPositionColor"/> data used for drawing a primitive</param>
-		public void AddDraw(params VertexPositionColor[] additions){
-			void CheckError(int expected){
+		public void AddDraw(params VertexPositionColor[] additions) {
+			void CheckError(int expected) {
 				if(additions.Length != expected)
 					throw new ArgumentException($"Primitive drawing package ({type}) received an invalid amount of draw data to cache. Expected: {expected}, Received: {additions.Length}");
 			}
 
-			switch(type){
+			switch(type) {
 				case PrimitiveType.LineList:
 					//LineList expects there to be two entries per line: the start and end points
 					/*
@@ -88,7 +88,7 @@ namespace GraphicsLib.Primitives{
 					break;
 			}
 
-			for(int p = 0; p < additions.Length; p++){
+			for(int p = 0; p < additions.Length; p++) {
 				var data = additions[p];
 				data.Position.Z = 0;
 
@@ -96,35 +96,29 @@ namespace GraphicsLib.Primitives{
 			}
 		}
 
-		public int GetPrimitivesCount(){
-			switch(type){
-				case PrimitiveType.LineList:
-					return draws.Count / 2;
-				case PrimitiveType.LineStrip:
-					return draws.Count - 1;
-				case PrimitiveType.TriangleList:
-					return draws.Count / 3;
-				case PrimitiveType.TriangleStrip:
-					return draws.Count - 2;
-				default:
-					return 0;
-			}
-		}
+		public int GetPrimitivesCount()
+			=> type switch {
+				PrimitiveType.LineList => draws.Count / 2,
+				PrimitiveType.LineStrip => draws.Count - 1,
+				PrimitiveType.TriangleList => draws.Count / 3,
+				PrimitiveType.TriangleStrip => draws.Count - 2,
+				_ => 0,
+			};
 
 		private bool disposed;
 
 		~PrimitivePacket() => Dispose(false);
 
-		public void Dispose(){
+		public void Dispose() {
 			Dispose(true);
 			GC.SuppressFinalize(this);
 		}
 
-		private void Dispose(bool disposing){
-			if(!disposed){
+		private void Dispose(bool disposing) {
+			if(!disposed) {
 				disposed = true;
 
-				if(disposing){
+				if(disposing) {
 					draws.Clear();
 					draws = null;
 				}
