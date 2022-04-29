@@ -35,7 +35,7 @@ namespace GraphicsLib {
 			switch(type) {
 				case 0:
 					//Example Line: Velocity
-					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand(),
+					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand("GraphiscLib command"),
 						caller.Player.Center - new Vector2(0, 80),
 						Main.rand.NextVector2Unit() * 7f,
 						ModContent.ProjectileType<ExampleLine>(),
@@ -48,7 +48,7 @@ namespace GraphicsLib {
 					break;
 				case 1:
 					//Example Line: Previous Postions
-					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand(),
+					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand("GraphiscLib command"),
 						caller.Player.Center - new Vector2(0, 80),
 						Main.rand.NextVector2Unit() * 7f,
 						ModContent.ProjectileType<ExampleLine>(),
@@ -61,7 +61,7 @@ namespace GraphicsLib {
 					break;
 				case 2:
 					//Example Line: Previous Postions, Lerped Color
-					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand(),
+					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand("GraphiscLib command"),
 						caller.Player.Center - new Vector2(0, 80),
 						Main.rand.NextVector2Unit() * 7f,
 						ModContent.ProjectileType<ExampleLine>(),
@@ -74,7 +74,7 @@ namespace GraphicsLib {
 					break;
 				case 3:
 					//Example Scale Mesh: Scale Vertically
-					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand(),
+					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand("GraphiscLib command"),
 						caller.Player.Center - new Vector2(0, 80),
 						Main.rand.NextVector2Unit() * 7f,
 						ModContent.ProjectileType<ExampleScaleMesh>(),
@@ -87,7 +87,7 @@ namespace GraphicsLib {
 					break;
 				case 4:
 					//Example Scale Mesh: Scale Horizontally
-					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand(),
+					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand("GraphiscLib command"),
 						caller.Player.Center - new Vector2(0, 80),
 						Main.rand.NextVector2Unit() * 7f,
 						ModContent.ProjectileType<ExampleScaleMesh>(),
@@ -100,7 +100,7 @@ namespace GraphicsLib {
 					break;
 				case 5:
 					//Example Scale Mesh: Rotate, then Scale
-					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand(),
+					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand("GraphiscLib command"),
 						caller.Player.Center - new Vector2(0, 80),
 						Main.rand.NextVector2Unit() * 7f,
 						ModContent.ProjectileType<ExampleScaleMesh>(),
