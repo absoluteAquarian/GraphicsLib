@@ -1,116 +1,176 @@
-﻿using GraphicsLib.Primitives;
+﻿using GraphicsLib.Drawing;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
-using System.Collections.Generic;
 using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
 
 namespace GraphicsLib.Examples {
 	public class ExampleLine : ModProjectile {
-		//This is an example of drawing primitive lines using the library
-		//The projectile alternates between drawing a line for its velocity or drawing where it's been based on its AI
-		public override void SetStaticDefaults() {
-			DisplayName.SetDefault("Line");
+		// This is an example of drawing primitive lines using the library
+		// The projectile alternates between drawing a line for its velocity or drawing where it's been based on its AI
 
+		private static PrimitiveBuilder<VertexPositionColor> hitbox;
+		private static PrimitiveBuilder<VertexPositionColor> velocityLine;
+		private static PrimitiveBuilder<VertexPositionColor> previousLocations;
+
+		private const int WIDTH = 16;
+		private const int HEIGHT = 16;
+		private const int POSITION_HISTORY = 300;
+
+		public override void SetStaticDefaults() {
 			ProjectileID.Sets.TrailingMode[Projectile.type] = 0;
-			ProjectileID.Sets.TrailCacheLength[Projectile.type] = 300;
+			ProjectileID.Sets.TrailCacheLength[Projectile.type] = POSITION_HISTORY;
+
+			hitbox = SimpleShapes.HollowPolygon(
+				positions: [
+					new Vector2(-WIDTH / 2, -HEIGHT / 2),  // Top-left corner
+					new Vector2( WIDTH / 2, -HEIGHT / 2),  // Top-right corner
+					new Vector2( WIDTH / 2,  HEIGHT / 2),  // Bottom-right corner
+					new Vector2(-WIDTH / 2,  HEIGHT / 2)   // Bottom-left corner
+				],
+				color: Color.Green * 0.8f
+			);
+
+			velocityLine = SimpleShapes.LineSegment(
+				start: Vector2.Zero,
+				startColor: Color.Red,
+				end: Vector2.Zero,  // This will be modified later
+				endColor: Color.Yellow
+			);
+
+			previousLocations = SimpleShapes.PolyLine(
+				positions: stackalloc Vector2[POSITION_HISTORY],  // Positions to overwrite later
+				color: Color.Transparent  // Color will be overwritten
+			);
 		}
 
 		public override void SetDefaults() {
-			Projectile.width = 16;
-			Projectile.height = 16;
+			Projectile.width = WIDTH;
+			Projectile.height = HEIGHT;
 			Projectile.tileCollide = false;
 			Projectile.aiStyle = -1;
-			Projectile.timeLeft = Max_Timeleft;
+			Projectile.timeLeft = MAX_TIMELEFT;
 		}
 
-		private const int Max_Timeleft = 60 * 20;
+		public int Mode {
+			get => (int)Projectile.ai[0];
+			set => Projectile.ai[0] = value;
+		}
+
+		private const int MAX_TIMELEFT = 60 * 20;
 
 		public const int AI_ShowVelocity = 1;
 		public const int AI_ShowLocations = 2;
 		public const int AI_ShowLocation_LerpColor = 3;
 
 		public override void AI() {
-			int swapTime = Projectile.ai[0] == AI_ShowVelocity
-				? 26
-				: (Projectile.ai[0] == AI_ShowLocations || Projectile.ai[0] == AI_ShowLocation_LerpColor
-					? 10
-					: -1);
-
-			if(swapTime == -1) {
+			int velocityTime = -1;
+			if (Mode == AI_ShowVelocity) {
+				// 26 ticks
+				velocityTime = 26;
+			} else if (Mode == AI_ShowLocations || Mode == AI_ShowLocation_LerpColor) {
+				// 10 ticks
+				velocityTime = 10;
+			} else {
+				// Invalid projectile
 				Projectile.active = false;
 				return;
 			}
 
-			if(Projectile.timeLeft % swapTime == 0)
+			if (Projectile.timeLeft % velocityTime == 0)
 				Projectile.velocity = Main.rand.NextVector2Unit() * 7f;
 		}
 
 		public override bool PreDraw(ref Color lightColor) {
-			if(Projectile.ai[0] < AI_ShowVelocity || Projectile.ai[0] > AI_ShowLocation_LerpColor)
+			if (Mode != AI_ShowVelocity && Mode != AI_ShowLocations && Mode != AI_ShowLocation_LerpColor)
 				return true;
 
-			//The SpriteBatch must have ended before submitting packets
-			Main.spriteBatch.End();
+			// The SpriteBatch must have ended before using primitives
+			PrimitiveUploader.EndCurrentSpriteBatch();
 
-			//IMPORTANT: All coordinates are in WORLD COORDINATES, not screen coordinates
-			//If you have a screen coordinate and want to use it, add "Main.screenPosition" to it
+			// This Matrix will move the primitives to the correct locations on-screen
+			Matrix transform = Matrix.CreateTranslation(new Vector3(Projectile.Center - Main.screenPosition, 0f));
 
-			//Draw a box representing the projectile's hitbox
-			Color boxColor = Color.Green * 0.8f;
-			PrimitiveDrawing.DrawFilledRectangle(Projectile.position, Projectile.BottomRight, boxColor, boxColor, boxColor, boxColor);
+			// Draw a box representing the projectile's hitbox
+			hitbox.Transform = transform;
+			PrimitiveUploader.Render(hitbox);
 
-			if(Projectile.ai[0] == AI_ShowVelocity) {
-				//Draws a single line from the projectile's center to where it will be a few ticks in the future
-				PrimitiveDrawing.DrawLineStrip(new Vector2[]{
-						Projectile.Center,
-						Projectile.Center + Projectile.velocity * 10
-					}, new Color[]{
-						Color.Red,
-						Color.Yellow
-					});
-			} else if(Projectile.ai[0] == AI_ShowLocations) {
-				//Draws a series of connected lines based on where the projectile has been
-				//This example uses a PrimitivePacket directly, but using PrimitiveDrawing.DrawLineStrip() would also work
-				if(Max_Timeleft - Projectile.timeLeft >= 1) {
-					int toDraw = Math.Min(Max_Timeleft - Projectile.timeLeft, ProjectileID.Sets.TrailCacheLength[Projectile.type]);
+			if (Mode == AI_ShowVelocity) {
+				// Draws a single line from the projectile's center to where it will be a few ticks in the future
+				velocityLine.Transform = transform;
 
-					//A LineStrip packet expects two points for the initial AddDraw call to make the first line, then one point after that for the other lines
-					PrimitivePacket packet = new(PrimitiveType.LineStrip);
+				// Modify the only Line primitive
+				var primitive = velocityLine.ReadLine(0);
+				primitive.End = primitive.End.SetPosition(Projectile.velocity * 10);
+				velocityLine.WritePrimitive(0, primitive);
 
-					packet.AddDraw(PrimitiveDrawing.ToPrimitive(Projectile.Center, Color.White),
-						PrimitiveDrawing.ToPrimitive(Projectile.oldPos[0] + Projectile.Size / 2f, Color.White));
+				// Render it
+				PrimitiveUploader.Render(velocityLine);
+			} else if (Mode == AI_ShowLocations) {
+				// Draws a series of connected lines based on where the projectile has been
+				int elapsedTicks = MAX_TIMELEFT;
 
-					for(int i = 1; i < toDraw; i++)
-						packet.AddDraw(PrimitiveDrawing.ToPrimitive(Projectile.oldPos[i] + Projectile.Size / 2f, Color.White));
+				if (elapsedTicks >= 1) {
+					previousLocations.Transform = transform;
 
-					//Calling PrimitiveDrawing.SubmitPacket() draws the packet immediately, hence why the SpriteBatch had to be ended earlier
-					PrimitiveDrawing.SubmitPacket(packet);
+					int positionCount = Math.Min(elapsedTicks, ProjectileID.Sets.TrailCacheLength[Projectile.type]);
+					Vector2 halfSize = Projectile.Size / 2f;
+
+					// Modify the first Line primitive
+					var linePrimitive = previousLocations.ReadLine(0);
+					linePrimitive.Start = linePrimitive.Start.SetColor(Color.White);
+					linePrimitive.End = linePrimitive.End.SetPosition(Projectile.oldPos[0] + halfSize);
+					linePrimitive.End = linePrimitive.End.SetColor(Color.White);
+					previousLocations.WritePrimitive(0, linePrimitive);
+
+					// Modify the successive Point primitives
+					for (int i = 1; i < positionCount; i++) {
+						var pointPrimitive = previousLocations.ReadPoint(i);
+						pointPrimitive.Vertex = pointPrimitive.Vertex.SetPosition(Projectile.oldPos[i] + halfSize);
+						pointPrimitive.Vertex = pointPrimitive.Vertex.SetColor(Color.White);
+						previousLocations.WritePrimitive(i, pointPrimitive);
+					}
+
+					// Render it
+					PrimitiveUploader.Render(previousLocations);
 				}
-			} else if(Projectile.ai[0] == AI_ShowLocation_LerpColor) {
-				//Similar to AI_ShowLocations, except the color is lerped
-				if(Max_Timeleft - Projectile.timeLeft >= 1) {
-					int toDraw = Math.Min(Max_Timeleft - Projectile.timeLeft, ProjectileID.Sets.TrailCacheLength[Projectile.type]);
+			} else if (Mode == AI_ShowLocation_LerpColor) {
+				// Similar to AI_ShowLocations, except the color is lerped
+				int elapsedTicks = MAX_TIMELEFT - Projectile.timeLeft;
 
-					List<Vector2> coords = new() {
-						Projectile.Center,
-						Projectile.oldPos[0] + Projectile.Size / 2f
-					};
-					for(int i = 1; i < toDraw; i++)
-						coords.Add(Projectile.oldPos[i] + Projectile.Size / 2f);
+				if (elapsedTicks >= 1) {
+					previousLocations.Transform = transform;
 
-					PrimitiveDrawing.DrawLineStrip(coords.ToArray(), start: Color.Red, end: Color.Green);
+					int toDraw = Math.Min(elapsedTicks, ProjectileID.Sets.TrailCacheLength[Projectile.type]);
+					Vector2 halfSize = Projectile.Size / 2f;
+					float lerpStep = 1f / toDraw;
+					float lerp = lerpStep;
+
+					// Modify the first Line primitive
+					var linePrimitive = previousLocations.ReadLine(0);
+					linePrimitive.Start = linePrimitive.Start.SetColor(Color.Red);
+					linePrimitive.End = linePrimitive.End.SetPosition(Projectile.oldPos[0] + halfSize);
+					linePrimitive.End = linePrimitive.End.SetColor(Color.Lerp(Color.Red, Color.Green, lerp));
+
+					lerp += lerpStep;
+
+					// Modify the successive Point primitives
+					for (int i = 1; i < toDraw; i++, lerp += lerpStep) {
+						var pointPrimitive = previousLocations.ReadPoint(i);
+						pointPrimitive.Vertex = pointPrimitive.Vertex.SetPosition(Projectile.oldPos[i] + halfSize);
+						pointPrimitive.Vertex = pointPrimitive.Vertex.SetColor(Color.Lerp(Color.Red, Color.Green, lerp));
+					}
+
+					// Render it
+					PrimitiveUploader.Render(previousLocations);
 				}
 			}
 
-			//These lines are necessary to prevent errors from ocurring when drawing the next projectile
-			Main.spriteBatch.Begin();
-			int shader = Main.GetProjectileDesiredShader(Projectile.whoAmI);
-			Main.CurrentDrawnEntityShader = shader != 0 ? 0 : 1;
-			Main.instance.PrepareDrawnEntityDrawing(Projectile, shader);
-			
+			// Restart the SpriteBatch with the original parameters
+			PrimitiveUploader.RestartPreviousSpriteBatch();
+
 			return true;
 		}
 	}

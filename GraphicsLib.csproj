@@ -1,13 +1,15 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\tModLoader.targets" />
   <PropertyGroup>
     <AssemblyName>GraphicsLib</AssemblyName>
-    <TargetFramework>net6.0</TargetFramework>
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="tModLoader.CodeAssist" Version="0.1.*" />
+    <Reference Include="SerousCommonLib">
+      <HintPath>..\references\1.4.4\SerousCommonLib.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>

@@ -1,0 +1,3 @@
+﻿[h1]v3.0.0[/h1]
+- Ported to 1.4.4 tModLoader
+- Drastically changed how most of the library works

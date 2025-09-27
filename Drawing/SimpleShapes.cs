@@ -1,0 +1,283 @@
+﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using System;
+
+namespace GraphicsLib.Drawing;
+
+/// <summary>
+/// Provides predefined <see cref="PrimitiveBuilder{TVertex}"/> instances for simple shapes.<br/>
+/// To access and modify the primitives within each bulder, use <see cref="PrimitiveBuilder{TVertex}.ReadPrimitive"/> and <see cref="PrimitiveBuilder{TVertex}.WritePrimitive"/>
+/// </summary>
+public static class SimpleShapes {
+	#region LineSegment
+	/// <summary>
+	/// Creates a builder for a single line segment with the specified color for both endpoints.<br/>
+	/// Defined primitives:<br/>
+	/// <list type="bullet">
+	/// <item>[0] : Line</item>
+	/// </list>
+	/// </summary>
+	/// <param name="color">The color for both endpoints of the line.</param>
+	/// <returns>The builder instance.</returns>
+	public static PrimitiveBuilder<VertexPositionColor> LineSegment(Color color) => LineSegment(color, color);
+
+	/// <summary>
+	/// Creates a builder for a single line segment with the specified colors for the start and end points.<br/>
+	/// Defined primitives:<br/>
+	/// <list type="bullet">
+	/// <item>[0] : Line</item>
+	/// </list>
+	/// </summary>
+	/// <param name="startColor">The color for the starting endpoint of the line.</param>
+	/// <param name="endColor">The color for the ending endpoint of the line.</param>
+	/// <returns>The builder instance.</returns>
+	public static PrimitiveBuilder<VertexPositionColor> LineSegment(Color startColor, Color endColor) => LineSegment(Vector3.Zero, startColor, Vector3.Zero, endColor);
+
+	/// <inheritdoc cref="LineSegment(Vector3, Vector3)"/>
+	public static PrimitiveBuilder<VertexPositionColor> LineSegment(Vector2 start, Vector2 end) => LineSegment(new Vector3(start, 0f), new Vector3(end, 0f));
+
+	/// <summary>
+	/// Creates a builder for a single line segment with the specified start and end positions, and the color white for both endpoints.<br/>
+	/// Defined primitives:<br/>
+	/// <list type="bullet">
+	/// <item>[0] : Line</item>
+	/// </list>
+	/// </summary>
+	/// <param name="start">The position of the starting endpoint of the line, relative to where the primitive will be drawn.</param>
+	/// <param name="end">The position of the ending endpoint of the line, relative to where the primitive will be drawn.</param>
+	/// <returns>The builder instance.</returns>
+	public static PrimitiveBuilder<VertexPositionColor> LineSegment(Vector3 start, Vector3 end) => LineSegment(start, Color.White, end, Color.White);
+
+	/// <inheritdoc cref="LineSegment(Vector3, Vector3, Color)"/>
+	public static PrimitiveBuilder<VertexPositionColor> LineSegment(Vector2 start, Vector2 end, Color color) => LineSegment(new Vector3(start, 0f), new Vector3(end, 0f), color);
+
+	/// <summary>
+	/// Creates a builder for a single line segment with the specified start and end positions, and the specified color for both endpoints.<br/>
+	/// Defined primitives:<br/>
+	/// <list type="bullet">
+	/// <item>[0] : Line</item>
+	/// </list>
+	/// </summary>
+	/// <param name="start">The position of the starting endpoint of the line, relative to where the primitive will be drawn.</param>
+	/// <param name="end">The position of the ending endpoint of the line, relative to where the primitive will be drawn.</param>
+	/// <param name="color">The color for both endpoints of the line.</param>
+	public static PrimitiveBuilder<VertexPositionColor> LineSegment(Vector3 start, Vector3 end, Color color) => LineSegment(start, color, end, color);
+
+	/// <inheritdoc cref="LineSegment(Vector3, Color, Vector3, Color)"/>
+	public static PrimitiveBuilder<VertexPositionColor> LineSegment(Vector2 start, Color startColor, Vector2 end, Color endColor) => LineSegment(new Vector3(start, 0f), startColor, new Vector3(end, 0f), endColor);
+
+	/// <summary>
+	/// Creates a builder for a single line segment with the specified start and end positions and colors.<br/>
+	/// Defined primitives:<br/>
+	/// <list type="bullet">
+	/// <item>[0] : Line</item>
+	/// </list>
+	/// </summary>
+	/// <param name="start">The position of the starting endpoint of the line, relative to where the primitive will be drawn.</param>
+	/// <param name="startColor">The color for the starting endpoint of the line.</param>
+	/// <param name="end">The position of the ending endpoint of the line, relative to where the primitive will be drawn.</param>
+	/// <param name="endColor">The color for the ending endpoint of the line.</param>
+	/// <returns>The builder instance.</returns>
+	public static PrimitiveBuilder<VertexPositionColor> LineSegment(Vector3 start, Color startColor, Vector3 end, Color endColor) {
+		return PrimitiveBuilder.CreateLineList<VertexPositionColor>(count: 1)
+			.PushPrimitive(
+				Line.Create(
+					start: new VertexPositionColor(start, startColor),
+					end: new VertexPositionColor(end, endColor)
+				)
+			);
+	}
+	#endregion
+
+	#region PolyLine
+	/// <inheritdoc cref="PolyLine(Span{Vector3}, Color)"/>
+	public static PrimitiveBuilder<VertexPositionColor> PolyLine(Span<Vector2> positions, Color color)
+		=> PolyLine(positions, color, static (p, c) => new VertexPositionColor(new Vector3(p, 0f), c));
+
+	/// <summary>
+	/// Creates a builder for a polyline with the specified positions and color.<br/>
+	/// Defined primitives for N positions:<br/>
+	/// <list type="bullet">
+	/// <item>[0] : Line</item>
+	/// <item>[1 .. N-2] : Point</item>
+	/// </list>
+	/// </summary>
+	/// <param name="positions">The positions of the polyline's vertices, relative to where the primitive will be drawn.</param>
+	/// <param name="color">The color for all vertices of the polyline.</param>
+	/// <returns>The builder instance.</returns>
+	public static PrimitiveBuilder<VertexPositionColor> PolyLine(Span<Vector3> positions, Color color)
+		=> PolyLine(positions, color, static (p, c) => new VertexPositionColor(p, c));
+
+	/// <inheritdoc cref="PolyLine(Span{ValueTuple{Vector3, Color}})"/>
+	public static PrimitiveBuilder<VertexPositionColor> PolyLine(Span<(Vector2, Color)> vertices)
+		=> PolyLine(vertices, 0, static (t, _) => new VertexPositionColor(new Vector3(t.Item1, 0f), t.Item2));
+
+	/// <summary>
+	/// Creates a builder for a polyline with the specified positions and colors.<br/>
+	/// Defined primitives for N vertices:<br/>
+	/// <list type="bullet">
+	/// <item>[0] : Line</item>
+	/// <item>[1 .. N-2] : Point</item>
+	/// </list>
+	/// </summary>
+	/// <param name="vertices">The positions and colors of the polyline's vertices, relative to where the primitive will be drawn.</param>
+	/// <returns>The builder instance.</returns>
+	public static PrimitiveBuilder<VertexPositionColor> PolyLine(Span<(Vector3, Color)> vertices)
+		=> PolyLine(vertices, 0, static (t, _) => new VertexPositionColor(t.Item1, t.Item2));
+
+	private static PrimitiveBuilder<VertexPositionColor> PolyLine<TFrom, TExtra>(
+		Span<TFrom> vertexData,
+		TExtra extraData,
+		Func<TFrom, TExtra, VertexPositionColor> transform
+	) {
+		if (vertexData.Length < 2)
+			throw new ArgumentException("A polyline must have at least 2 vertices.", nameof(vertexData));
+
+		Span<Point<VertexPositionColor>> pointPrimitives = stackalloc Point<VertexPositionColor>[vertexData.Length - 2];
+
+		for (int i = 0; i < pointPrimitives.Length; i++)
+			pointPrimitives[i] = Point.Create(transform(vertexData[i + 2], extraData));
+
+		return PrimitiveBuilder.CreateLineStrip<VertexPositionColor>(count: 1 + pointPrimitives.Length, connectLastToFirst: false)
+			.PushPrimitive(
+				Line.Create(
+					start: transform(vertexData[0], extraData),
+					end: transform(vertexData[1], extraData)
+				)
+			)
+			.PushPrimitives(
+				pointPrimitives
+			);
+	}
+	#endregion
+
+	#region HollowPolygon
+	/// <inheritdoc cref="HollowPolygon(Span{Vector3}, Color)"/>
+	public static PrimitiveBuilder<VertexPositionColor> HollowPolygon(Span<Vector2> positions, Color color)
+		=> HollowPolygon(positions, color, static (p, c) => new VertexPositionColor(new Vector3(p, 0f), c));
+
+	/// <summary>
+	/// Creates a builder for a hollow polygon with the specified positions and color.<br/>
+	/// Defined primitives for N positions:<br/>
+	/// <list type="bullet">
+	/// <item>[0] : Line</item>
+	/// <item>[1 .. N-2] : Point</item>
+	/// </list>
+	/// </summary>
+	/// <param name="positions">The positions of the polygon's vertices, relative to where the primitive will be drawn.</param>
+	/// <param name="color">The color for all vertices of the polygon.</param>
+	/// <returns>The builder instance.</returns>
+	public static PrimitiveBuilder<VertexPositionColor> HollowPolygon(Span<Vector3> positions, Color color)
+		=> HollowPolygon(positions, color, static (p, c) => new VertexPositionColor(p, c));
+
+	/// <inheritdoc cref="HollowPolygon(Span{ValueTuple{Vector2, Color}})"/>
+	public static PrimitiveBuilder<VertexPositionColor> HollowPolygon(Span<(Vector2, Color)> vertices)
+		=> HollowPolygon(vertices, 0, static (t, _) => new VertexPositionColor(new Vector3(t.Item1, 0f), t.Item2));
+
+	/// <summary>
+	/// Creates a builder for a hollow polygon with the specified positions and colors.<br/>
+	/// Defined primitives for N vertices:<br/>
+	/// <list type="bullet">
+	/// <item>[0] : Line</item>
+	/// <item>[1 .. N-2] : Point</item>
+	/// </list>
+	/// </summary>
+	/// <param name="vertices">The positions and colors of the polygon's vertices, relative to where the primitive will be drawn.</param>
+	/// <returns>The builder instance.</returns>
+	public static PrimitiveBuilder<VertexPositionColor> HollowPolygon(Span<(Vector3, Color)> vertices)
+		=> HollowPolygon(vertices, 0, static (t, _) => new VertexPositionColor(t.Item1, t.Item2));
+
+	private static PrimitiveBuilder<VertexPositionColor> HollowPolygon<TFrom, TExtra>(
+		Span<TFrom> vertexData,
+		TExtra extraData,
+		Func<TFrom, TExtra, VertexPositionColor> transform
+	) {
+		if (vertexData.Length < 3)
+			throw new ArgumentException("A polygon must have at least 3 vertices.", nameof(vertexData));
+
+		Span<Point<VertexPositionColor>> pointPrimitives = stackalloc Point<VertexPositionColor>[vertexData.Length - 2];
+
+		for (int i = 0; i < pointPrimitives.Length; i++)
+			pointPrimitives[i] = Point.Create(transform(vertexData[i + 2], extraData));
+
+		return PrimitiveBuilder.CreateLineStrip<VertexPositionColor>(count: 1 + pointPrimitives.Length, connectLastToFirst: true)
+			.PushPrimitive(
+				Line.Create(
+					start: transform(vertexData[0], extraData),
+					end: transform(vertexData[1], extraData)
+				)
+			)
+			.PushPrimitives(
+				pointPrimitives
+			);
+	}
+	#endregion
+
+	#region FilledPolygon
+	/// <inheritdoc cref="FilledPolygon(Span{Vector3}, Color)"/>
+	public static PrimitiveBuilder<VertexPositionColor> FilledPolygon(Span<Vector2> positions, Color color)
+		=> FilledPolygon(positions, color, static (p, c) => new VertexPositionColor(new Vector3(p, 0f), c));
+
+	/// <summary>
+	/// Creates a filled polygon primitive using the specified positions and color.<br/>
+	/// Defined primitives for N positions:<br/>
+	/// <list type="bullet">
+	/// <item>[0] : Triangle</item>
+	/// <item>[1 .. N-3] : Point</item>
+	/// </list>
+	/// </summary>
+	/// <param name="positions">The positions of the polygon's vertices, relative to where the primitive will be drawn.</param>
+	/// <param name="color">The color for all vertices of the polygon.</param>
+	/// <returns>The builder instance.</returns>
+	public static PrimitiveBuilder<VertexPositionColor> FilledPolygon(Span<Vector3> positions, Color color)
+		=> FilledPolygon(positions, color, static (p, c) => new VertexPositionColor(p, c));
+
+	/// <inheritdoc cref="FilledPolygon(Span{ValueTuple{Vector2, Color}})"/>
+	public static PrimitiveBuilder<VertexPositionColor> FilledPolygon(Span<(Vector2, Color)> vertices)
+		=> FilledPolygon(vertices, 0, static (t, _) => new VertexPositionColor(new Vector3(t.Item1, 0f), t.Item2));
+
+	/// <summary>
+	/// Creates a filled polygon primitive using the specified positions and colors.<br/>
+	/// Defined primitives for N vertices:<br/>
+	/// <list type="bullet">
+	/// <item>[0] : Triangle</item>
+	/// <item>[1 .. N-3] : Point</item>
+	/// </list>
+	/// </summary>
+	/// <param name="vertices">The positions and colors of the polygon's vertices, relative to where the primitive will be drawn.</param>
+	/// <returns>The builder instance.</returns>
+	public static PrimitiveBuilder<VertexPositionColor> FilledPolygon(Span<(Vector3, Color)> vertices)
+		=> FilledPolygon(vertices, 0, static (t, _) => new VertexPositionColor(t.Item1, t.Item2));
+
+	private static PrimitiveBuilder<VertexPositionColor> FilledPolygon<TFrom, TExtra>(
+		Span<TFrom> vertexData,
+		TExtra extraData,
+		Func<TFrom, TExtra, VertexPositionColor> transform
+	) {
+		if (vertexData.Length < 3)
+			throw new ArgumentException("A polygon must have at least 3 vertices.", nameof(vertexData));
+
+		Span<Point<VertexPositionColor>> pointPrimitives = stackalloc Point<VertexPositionColor>[vertexData.Length - 3];
+
+		for (int i = 0; i < pointPrimitives.Length; i++)
+			pointPrimitives[i] = Point.Create(transform(vertexData[i + 3], extraData));
+
+		var builder = new PrimitiveBuilder<VertexPositionColor>(
+			new PolygonAcceptor<VertexPositionColor>(primitiveCount: 1 + pointPrimitives.Length),
+			PrimitiveType.TriangleList
+		);
+
+		return builder
+			.PushPrimitive(
+				Triangle.Create(
+					a: transform(vertexData[0], extraData),
+					b: transform(vertexData[1], extraData),
+					c: transform(vertexData[2], extraData)
+				)
+			)
+			.PushPrimitives(
+				pointPrimitives
+			);
+	}
+	#endregion
+}

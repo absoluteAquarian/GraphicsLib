@@ -16,23 +16,23 @@ namespace GraphicsLib {
 		public override string Description => "Spawns an example from GraphicsLib";
 
 		public override void Action(CommandCaller caller, string input, string[] args) {
-			if(args.Length < 1) {
+			if (args.Length < 1) {
 				caller.Reply("Expected a positive integer argument.", Color.Red);
 				return;
 			}
 
-			if(args.Length > 1) {
+			if (args.Length > 1) {
 				caller.Reply("Too many arguments specified.", Color.Red);
 				return;
 			}
 
-			if(!uint.TryParse(args[0], out uint type)) {
+			if (!uint.TryParse(args[0], out uint type)) {
 				caller.Reply("Invalid argument", Color.Red);
 				return;
 			}
 
 			int spawned;
-			switch(type) {
+			switch (type) {
 				case 0:
 					//Example Line: Velocity
 					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand("GraphiscLib command"),
@@ -72,51 +72,12 @@ namespace GraphicsLib {
 
 					caller.Reply("Spawned: Example Line - Old Postions, Lerped Color");
 					break;
-				case 3:
-					//Example Scale Mesh: Scale Vertically
-					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand("GraphiscLib command"),
-						caller.Player.Center - new Vector2(0, 80),
-						Main.rand.NextVector2Unit() * 7f,
-						ModContent.ProjectileType<ExampleScaleMesh>(),
-						0,
-						0,
-						caller.Player.whoAmI,
-						ai0: ExampleScaleMesh.AI_ScaleVertically);
-
-					caller.Reply("Spawned: Example Mesh - Scale Vertically");
-					break;
-				case 4:
-					//Example Scale Mesh: Scale Horizontally
-					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand("GraphiscLib command"),
-						caller.Player.Center - new Vector2(0, 80),
-						Main.rand.NextVector2Unit() * 7f,
-						ModContent.ProjectileType<ExampleScaleMesh>(),
-						0,
-						0,
-						caller.Player.whoAmI,
-						ai0: ExampleScaleMesh.AI_ScaleHorizontally);
-
-					caller.Reply("Spawned: Example Mesh - Scale Horizontally");
-					break;
-				case 5:
-					//Example Scale Mesh: Rotate, then Scale
-					spawned = Projectile.NewProjectile(new EntitySource_DebugCommand("GraphiscLib command"),
-						caller.Player.Center - new Vector2(0, 80),
-						Main.rand.NextVector2Unit() * 7f,
-						ModContent.ProjectileType<ExampleScaleMesh>(),
-						0,
-						0,
-						caller.Player.whoAmI,
-						ai0: ExampleScaleMesh.AI_RotateThenScale);
-
-					caller.Reply("Spawned: Example Mesh - Scale with Initial Rotation");
-					break;
 				default:
 					caller.Reply("Unknown example type requested", Color.Red);
 					return;
 			}
 
-			if(Main.netMode == NetmodeID.MultiplayerClient)
+			if (Main.netMode == NetmodeID.MultiplayerClient)
 				NetMessage.SendData(MessageID.SyncProjectile, number: spawned);
 		}
 	}

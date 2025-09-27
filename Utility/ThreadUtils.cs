@@ -3,20 +3,20 @@ using System;
 using System.Threading;
 using Terraria;
 
-namespace GraphicsLib.Utility {
-	public static class ThreadUtils {
-		public static void InvokeOnMainThread(Action action) {
-			if (!AssetRepository.IsMainThread) {
-				ManualResetEvent evt = new(false);
+namespace GraphicsLib.Utility;
 
-				Main.QueueMainThreadAction(() => {
-					action();
-					evt.Set();
-				});
+public static class ThreadUtils {
+	public static void InvokeOnMainThread(Action action) {
+		if (!AssetRepository.IsMainThread) {
+			ManualResetEvent evt = new(false);
 
-				evt.WaitOne();
-			} else
+			Main.QueueMainThreadAction(() => {
 				action();
-		}
+				evt.Set();
+			});
+
+			evt.WaitOne();
+		} else
+			action();
 	}
 }
