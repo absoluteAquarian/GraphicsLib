@@ -37,7 +37,7 @@ namespace GraphicsLib.Examples {
 					new Vector2( WIDTH / 2,  HEIGHT / 2),  // Bottom-right corner
 					new Vector2(-WIDTH / 2,  HEIGHT / 2)   // Bottom-left corner
 				],
-				color: Color.Green * 0.8f
+				color: Color.LimeGreen * 0.8f
 			);
 
 			velocityLine = SimpleShapes.LineSegment(
@@ -130,7 +130,7 @@ namespace GraphicsLib.Examples {
 			} else if (Mode == AI_ShowLocation_LerpColor) {
 				// AI_ShowLocations, except the color is lerped
 
-				RenderPreviousLocations(transform, lerp => Color.Lerp(Color.Red, Color.Green, lerp));
+				RenderPreviousLocations(transform, lerp => Color.Lerp(Color.Red, Color.LimeGreen, lerp));
 			}
 
 			// Restart the SpriteBatch with the original parameters
