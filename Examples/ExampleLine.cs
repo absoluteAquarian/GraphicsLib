@@ -103,110 +103,90 @@ namespace GraphicsLib.Examples {
 			Matrix transform = PrimitiveBuilder.GetOnScreenOrigin(Projectile.Center);
 
 			// Draw a box representing the projectile's hitbox
+
 			hitboxInstanced ??= hitbox.Clone();
 			hitboxInstanced.Transform = transform;
 			PrimitiveUploader.Render(hitboxInstanced);
 
 			if (Mode == AI_ShowVelocity) {
 				// Draws a single line from the projectile's center to where it will be a few ticks in the future
+
 				velocityLineInstanced ??= velocityLine.Clone();
 				velocityLineInstanced.Transform = transform;
 
 				// Modify the only Line primitive
+
 				var reader = velocityLineInstanced.GetReader();
 				var primitive = reader.GetLineReference(0);
 				primitive.End.Position = new Vector3(Projectile.velocity * 10, 0f);
 
 				// Render it
+
 				PrimitiveUploader.Render(velocityLineInstanced);
 			} else if (Mode == AI_ShowLocations) {
 				// Draws a series of connected lines based on where the projectile has been
-				int elapsedTicks = MAX_TIMELEFT - Projectile.timeLeft;
-				int maxTicks = ProjectileID.Sets.TrailCacheLength[Projectile.type];
 
-				if (elapsedTicks >= 1) {
-					previousLocationsInstanced ??= previousLocations.Clone();
-					previousLocationsInstanced.Transform = transform;
-
-					int positionCount = Math.Min(elapsedTicks, maxTicks);
-
-					// Modify the first Line primitive
-					var reader = previousLocationsInstanced.GetReader();
-					var linePrimitive = reader.GetLineReference(0);
-					linePrimitive.Start.Color = Color.White;
-					// The transform will make (0, 0) in primitive coordinates refer to the projectile's center
-					// Hence, each point using Projectile.oldPos[] needs to account for that
-					linePrimitive.End.Position = new Vector3(Projectile.oldPos[0] - Projectile.position, 0f);
-					linePrimitive.End.Color = Color.White;
-
-					// Modify the successive Point primitives
-					Vector3 lastPosition = default;
-					for (int i = 1; i < positionCount; i++) {
-						lastPosition = new Vector3(Projectile.oldPos[i] - Projectile.position, 0f);
-
-						var pointPrimitive = reader.GetPointReference(i);
-						pointPrimitive.Vertex.Position = lastPosition;
-						pointPrimitive.Vertex.Color = Color.White;
-					}
-
-					// Points that shouldn't be drawn yet are moved to the last position so that no "bleed" occurs toward the uninitialized points
-					previousLocationsInstanced.FillPrimitive(
-						primitive: GraphicsLib.Drawing.Point.Create(new VertexPositionColor(lastPosition, Color.Transparent)),
-						start: positionCount
-					);
-
-					// Render it
-					PrimitiveUploader.Render(previousLocationsInstanced);
-				}
+				RenderPreviousLocations(transform, _ => Color.White);
 			} else if (Mode == AI_ShowLocation_LerpColor) {
-				// Similar to AI_ShowLocations, except the color is lerped
-				int elapsedTicks = MAX_TIMELEFT - Projectile.timeLeft;
-				int maxTicks = ProjectileID.Sets.TrailCacheLength[Projectile.type];
+				// AI_ShowLocations, except the color is lerped
 
-				if (elapsedTicks >= 1) {
-					previousLocationsInstanced ??= previousLocations.Clone();
-					previousLocationsInstanced.Transform = transform;
-
-					int positionCount = Math.Min(elapsedTicks, ProjectileID.Sets.TrailCacheLength[Projectile.type]);
-					float lerpStep = 1f / positionCount;
-					float lerp = lerpStep;
-
-					// Modify the first Line primitive
-					var reader = previousLocationsInstanced.GetReader();
-					var linePrimitive = reader.GetLineReference(0);
-					linePrimitive.Start.Color = Color.Red;
-					// The transform will make (0, 0) in primitive coordinates refer to the projectile's center
-					// Hence, each point using Projectile.oldPos[] needs to account for that
-					linePrimitive.End.Position = new Vector3(Projectile.oldPos[0] - Projectile.position, 0f);
-					linePrimitive.End.Color = Color.Lerp(Color.Red, Color.Green, lerp);
-
-					lerp += lerpStep;
-
-					// Modify the successive Point primitives
-					Vector3 lastPosition = default;
-					for (int i = 1; i < positionCount; i++, lerp += lerpStep) {
-						lastPosition = new Vector3(Projectile.oldPos[i] - Projectile.position, 0f);
-
-						var pointPrimitive = reader.GetPointReference(i);
-						pointPrimitive.Vertex.Position = lastPosition;
-						pointPrimitive.Vertex.Color = Color.Lerp(Color.Red, Color.Green, lerp);
-					}
-
-					// Points that shouldn't be drawn yet are moved to the last position so that no "bleed" occurs toward the uninitialized points
-					previousLocationsInstanced.FillPrimitive(
-						primitive: GraphicsLib.Drawing.Point.Create(new VertexPositionColor(lastPosition, Color.Transparent)),
-						start: positionCount
-					);
-
-					// Render it
-					PrimitiveUploader.Render(previousLocationsInstanced);
-				}
+				RenderPreviousLocations(transform, lerp => Color.Lerp(Color.Red, Color.Green, lerp));
 			}
 
 			// Restart the SpriteBatch with the original parameters
+
 			PrimitiveUploader.RestartPreviousSpriteBatch();
 
 			return true;
+		}
+
+		private void RenderPreviousLocations(Matrix transform, Func<float, Color> getVertexColor) {
+			int elapsedTicks = MAX_TIMELEFT - Projectile.timeLeft;
+			int maxTicks = ProjectileID.Sets.TrailCacheLength[Projectile.type];
+
+			if (elapsedTicks >= 1) {
+				previousLocationsInstanced ??= previousLocations.Clone();
+				previousLocationsInstanced.Transform = transform;
+
+				int positionCount = Math.Min(elapsedTicks, maxTicks);
+				float lerpStep = 1f / positionCount;
+				float lerp = lerpStep;
+
+				// Modify the first Line primitive
+
+				var reader = previousLocationsInstanced.GetReader();
+				var linePrimitive = reader.GetLineReference(0);
+				linePrimitive.Start.Color = Color.Red;
+				// The transform will make (0, 0) in primitive coordinates refer to the projectile's center
+				// Hence, each point using Projectile.oldPos[] needs to account for that
+				linePrimitive.End.Position = new Vector3(Projectile.oldPos[0] - Projectile.position, 0f);
+				linePrimitive.End.Color = getVertexColor(lerp);
+
+				lerp += lerpStep;
+
+				// Modify the successive Point primitives
+
+				Vector3 lastPosition = default;
+
+				for (int i = 1; i < positionCount; i++, lerp += lerpStep) {
+					lastPosition = new Vector3(Projectile.oldPos[i] - Projectile.position, 0f);
+
+					var pointPrimitive = reader.GetPointReference(i);
+					pointPrimitive.Vertex.Position = lastPosition;
+					pointPrimitive.Vertex.Color = getVertexColor(lerp);
+				}
+
+				// Points that shouldn't be drawn yet are moved to the last position so that no "bleed" occurs toward the uninitialized points
+
+				previousLocationsInstanced.FillPrimitive(
+					primitive: GraphicsLib.Drawing.Point.Create(new VertexPositionColor(lastPosition, Color.Transparent)),
+					start: positionCount
+				);
+
+				// Render it
+
+				PrimitiveUploader.Render(previousLocationsInstanced);
+			}
 		}
 	}
 }
