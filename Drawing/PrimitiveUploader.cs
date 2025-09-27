@@ -1,4 +1,5 @@
 ﻿using GraphicsLib.Collections;
+using GraphicsLib.Utility;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using SerousCommonLib.API;
@@ -18,8 +19,33 @@ public static class PrimitiveUploader {
 
 	internal static event Action OnUnload;
 
-	internal static void Load() {
+	private static Effect vpcShader;
+	private static EffectParameter vpcWorldViewProj;
+	private static Effect vptShader;
+	private static EffectParameter vptWorldViewProj;
+	private static Effect vpctShader;
+	private static EffectParameter vpctWorldViewProj;
 
+	internal static void Load() {
+		ThreadUtils.InvokeOnMainThread(static () => {
+			var device = Main.graphics.GraphicsDevice;
+
+			vpcShader = new BasicEffect(device) {
+				VertexColorEnabled = true
+			};
+			vpcWorldViewProj = vpcShader.Parameters["WorldViewProj"];
+
+			vptShader = new BasicEffect(device) {
+				TextureEnabled = true
+			};
+			vptWorldViewProj = vptShader.Parameters["WorldViewProj"];
+
+			vpctShader = new BasicEffect(device) {
+				VertexColorEnabled = true,
+				TextureEnabled = true
+			};
+			vpctWorldViewProj = vpctShader.Parameters["WorldViewProj"];
+		});
 	}
 
 	internal static void Unload() {
@@ -73,14 +99,15 @@ public static class PrimitiveUploader {
 		var transforms = new SpriteBatchTransform(Main.spriteBatch);
 
 		bool hadActiveBatch = Main.spriteBatch.IsActive();
-		Effect customEffect = null;
-		if (hadActiveBatch) {
-			customEffect = _batchParams.customEffect;
+		if (hadActiveBatch)
 			EndCurrentSpriteBatch();
-		} else if (_batchParams is not null)
-			customEffect = _batchParams.customEffect;  // Ensure that the custom shader is still being used
 
 		try {
+			if (typeof(TVertex) != typeof(VertexPositionColor) && typeof(TVertex) != typeof(VertexPositionColorTexture) && typeof(TVertex) != typeof(VertexPositionTexture)) {
+				// Not supported until we have proper shaders for the other vertex types
+				throw new NotSupportedException($"The vertex type ({typeof(TVertex).FullNameUpgraded()}) is not supported by this method");
+			}
+
 			builder.RenderError = null;
 
 			builder.GetData(out var vertices, out var indices, out int primitiveCount, out PrimitiveType mode);
@@ -104,19 +131,49 @@ public static class PrimitiveUploader {
 			indexBuffer.SetData(indices);
 
 			// Set up the device for rendering the primitive
-			transforms.ApplyTransform(builder.Transform ?? Matrix.Identity);
+			var viewport = device.Viewport;
+
+			Matrix orthographic = Matrix.CreateOrthographicOffCenter(
+				left: 0,
+				right: viewport.Width,
+				bottom: viewport.Height,
+				top: 0,
+				zNearPlane: 0,
+				zFarPlane: 1
+			);
+
+			Matrix projection;
+			if (builder.Transform is Matrix adjustment)
+				projection = adjustment * transforms.transformMatrix * orthographic;
+			else
+				projection = transforms.transformMatrix * orthographic;
 
 			device.SetVertexBuffer(vertexBuffer);
 			device.Indices = indexBuffer;
 
-			if (customEffect is not null) {
+			if (builder.Shader is Effect shader) {
+				shader.Parameters["WorldViewProj"]?.SetValue(projection);
+
 				// Draw using each pass
-				foreach (var pass in customEffect.CurrentTechnique.Passes) {
+				foreach (var pass in shader.CurrentTechnique.Passes) {
 					pass.Apply();
 					device.DrawIndexedPrimitives(mode, 0, 0, vertices.Length, 0, primitiveCount);
 				}
-			} else
+			} else {
+				// Ensure that the GraphicsDevice expects the vertex type being used
+				if (typeof(TVertex) == typeof(VertexPositionColor)) {
+					vpcWorldViewProj.SetValue(projection);
+					vpcShader.CurrentTechnique.Passes[0].Apply();
+				} else if (typeof(TVertex) == typeof(VertexPositionTexture)) {
+					vptWorldViewProj.SetValue(projection);
+					vptShader.CurrentTechnique.Passes[0].Apply();
+				} else if (typeof(TVertex) == typeof(VertexPositionColorTexture)) {
+					vpctWorldViewProj.SetValue(projection);
+					vpctShader.CurrentTechnique.Passes[0].Apply();
+				}
+
 				device.DrawIndexedPrimitives(mode, 0, 0, vertices.Length, 0, primitiveCount);
+			}
 
 			return true;
 		} catch (Exception ex) {

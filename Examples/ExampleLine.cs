@@ -69,10 +69,10 @@ namespace GraphicsLib.Examples {
 			int velocityTime = -1;
 			if (Mode == AI_ShowVelocity) {
 				// 26 ticks
-				velocityTime = 26;
+				velocityTime = 42;
 			} else if (Mode == AI_ShowLocations || Mode == AI_ShowLocation_LerpColor) {
 				// 10 ticks
-				velocityTime = 10;
+				velocityTime = 18;
 			} else {
 				// Invalid projectile
 				Projectile.active = false;
@@ -80,10 +80,12 @@ namespace GraphicsLib.Examples {
 			}
 
 			if (Projectile.timeLeft % velocityTime == 0)
-				Projectile.velocity = Main.rand.NextVector2Unit() * 7f;
+				Projectile.velocity = Main.rand.NextVector2Unit() * 6f;
 		}
 
 		public override bool PreDraw(ref Color lightColor) {
+			lightColor = Color.White;
+
 			if (Mode != AI_ShowVelocity && Mode != AI_ShowLocations && Mode != AI_ShowLocation_LerpColor)
 				return true;
 

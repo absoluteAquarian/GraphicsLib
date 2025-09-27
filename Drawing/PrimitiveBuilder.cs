@@ -143,6 +143,11 @@ public class PrimitiveBuilder<TVertex>
 	public Matrix? Transform { get; set; }
 
 	/// <summary>
+	/// An optional custom shader to use when rendering the built primitives.
+	/// </summary>
+	public Effect Shader { get; set; }
+
+	/// <summary>
 	/// If an error occurred during rendering, this will contain the exception that was thrown.
 	/// </summary>
 	public Exception RenderError { get; internal set; }
