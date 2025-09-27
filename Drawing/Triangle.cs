@@ -43,9 +43,31 @@ public record struct Triangle<TVertex>(TVertex A, TVertex B, TVertex C) : IPrimi
 		destination[2] = self.C;
 	}
 
-	static void IPrimitive<Triangle<TVertex>, TVertex>.MapIndices(in Triangle<TVertex> self, short baseIndex, Span<short> destination) {
+	static void IPrimitive<Triangle<TVertex>, TVertex>.MapIndices(short baseIndex, Span<short> destination) {
 		destination[0] = baseIndex;
 		destination[1] = (short)(baseIndex + 1);
 		destination[2] = (short)(baseIndex + 2);
 	}
+}
+
+/// <summary>
+/// A reference to a <see cref="Triangle{TVertex}"/> primitive in a <see cref="PrimitiveBuilder{TVertex}"/>
+/// </summary>
+/// <typeparam name="TVertex">The vertex type.</typeparam>
+/// <param name="ref">The raw primitive reference.</param>
+public readonly ref struct TriangleRef<TVertex>(PrimitiveRef<Triangle<TVertex>, TVertex> @ref)
+	where TVertex : struct, IVertexType
+{
+	private readonly ref TVertex _a = ref @ref[0];
+	private readonly ref TVertex _b = ref @ref[1];
+	private readonly ref TVertex _c = ref @ref[2];
+
+	/// <inheritdoc cref="Triangle{TVertex}.A"/>
+	public ref TVertex A => ref _a;
+	
+	/// <inheritdoc cref="Triangle{TVertex}.B"/>
+	public ref TVertex B => ref _b;
+	
+	/// <inheritdoc cref="Triangle{TVertex}.C"/>
+	public ref TVertex C => ref _c;
 }

@@ -16,7 +16,14 @@ public abstract class PrimitiveAcceptor<TVertex>
 	/// <typeparam name="T">The primitive type.</typeparam>
 	/// <param name="index">The index of the primitive were it to be added next.</param>
 	/// <returns><see langword="true"/> if this acceptor can accept the specified primitive type; otherwise, <see langword="false"/>.</returns>"
-	protected abstract bool Accepts<T>(int index) where T : struct, IPrimitive<T, TVertex>;
+	public abstract bool Accepts<T>(int index) where T : struct, IPrimitive<T, TVertex>;
+
+	/// <summary>
+	/// Copies the state of this acceptor to another acceptor of the same type.<br/>
+	/// This is used when cloning, and you are encouraged to copy any vertex and index data to the new acceptor.
+	/// </summary>
+	/// <param name="clone">The acceptor to copy state to.</param>
+	public abstract void CopyTo(PrimitiveAcceptor<TVertex> clone);
 
 	/// <summary>
 	/// Extracts the data needed to render the built primitives.
@@ -30,7 +37,14 @@ public abstract class PrimitiveAcceptor<TVertex>
 	/// Gets the base vertex index for the specified primitive index.
 	/// </summary>
 	/// <param name="index">The zero-based index of the primitive.</param>
-	protected abstract int GetVertexBaseForPrimitive(int index);
+	public abstract int GetVertexBase(int index);
+
+	/// <summary>
+	/// Creates a new instance of the same type as this acceptor.<br/>
+	/// This is used when cloning the acceptor.
+	/// </summary>
+	/// <returns>The new acceptor instance.</returns>
+	public abstract PrimitiveAcceptor<TVertex> NewInstance();
 
 	/// <summary>
 	/// Adds the specified primitive to the vertex buffer for this acceptor.
@@ -39,14 +53,15 @@ public abstract class PrimitiveAcceptor<TVertex>
 	/// <param name="primitive">The primitive instance.</param>
 	public abstract void Push<T>(in T primitive) where T : struct, IPrimitive<T, TVertex>;
 
-	private static class FriendlyName<T> {
-		public static readonly string Value;
-
-		static FriendlyName() {
-			string name = typeof(T).Name;
-			int index = name.IndexOf('`');
-			Value = index >= 0 ? name[..index] : name;
-		}
+	/// <summary>
+	/// Creates a new acceptor that is a copy of this instance.<br/>
+	/// The cloned acceptor is expected to also have copies of any vertex and index data.
+	/// </summary>
+	/// <returns>The cloned acceptor.</returns>
+	public PrimitiveAcceptor<TVertex> Clone() {
+		var clone = NewInstance();
+		CopyTo(clone);
+		return clone;
 	}
 
 	/// <summary>
@@ -66,7 +81,7 @@ public abstract class PrimitiveAcceptor<TVertex>
 		if (vertices is not { Length: > 0 })
 			throw new InvalidOperationException("The acceptor is still waiting for all primitives to be pushed");
 
-		int baseVertex = GetVertexBaseForPrimitive(index);
+		int baseVertex = GetVertexBase(index);
 
 		if (baseVertex < 0 || baseVertex + T.VertexCount > vertices.Length)
 			throw new ArgumentOutOfRangeException(nameof(index), "The specified index is out of range");
@@ -91,7 +106,7 @@ public abstract class PrimitiveAcceptor<TVertex>
 		if (vertices is not { Length: > 0 })
 			throw new InvalidOperationException("The acceptor is still waiting for all primitives to be pushed");
 
-		int baseVertex = GetVertexBaseForPrimitive(index);
+		int baseVertex = GetVertexBase(index);
 
 		if (baseVertex < 0 || baseVertex + T.VertexCount > vertices.Length)
 			throw new ArgumentOutOfRangeException(nameof(index), "The specified index is out of range");

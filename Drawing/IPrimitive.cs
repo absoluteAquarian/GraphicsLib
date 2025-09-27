@@ -37,8 +37,7 @@ public interface IPrimitive<TSelf, TVertex>
 	/// <summary>
 	/// Maps the indices required to represent this primitive into <paramref name="destination"/>.
 	/// </summary>
-	/// <param name="self">The primitive instance</param>
 	/// <param name="baseIndex">The base index to offset the mapped indices by.</param>
 	/// <param name="destination">The destination span to write the indices into.  Must be at least <see cref="IndexCount"/> in length.</param>
-	static abstract void MapIndices(in TSelf self, short baseIndex, Span<short> destination);
+	static abstract void MapIndices(short baseIndex, Span<short> destination);
 }

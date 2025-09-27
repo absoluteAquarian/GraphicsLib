@@ -1,6 +1,8 @@
-﻿using Microsoft.Xna.Framework;
+﻿using GraphicsLib.Utility;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
+using Terraria;
 
 namespace GraphicsLib.Drawing;
 
@@ -125,6 +127,22 @@ public static class PrimitiveBuilder {
 			PrimitiveType.TriangleList
 		);
 	}
+
+	/// <summary>
+	/// Creates a translation matrix that moves the origin point for a <see cref="PrimitiveBuilder{TVertex}"/> to the specified world coordinate on screen.<br/>
+	/// The screen's position is implied to be <see cref="Main.screenPosition"/>
+	/// </summary>
+	/// <param name="worldCoordinate">The world coordinate to move the origin to.</param>
+	/// <returns>The translation matrix.</returns>
+	public static Matrix GetOnScreenOrigin(Vector2 worldCoordinate) => GetOnScreenOrigin(worldCoordinate, Main.screenPosition);
+
+	/// <summary>
+	/// Creates a translation matrix that moves the origin point for a <see cref="PrimitiveBuilder{TVertex}"/> to the specified world coordinate on screen.
+	/// </summary>
+	/// <param name="worldCoordinate">The world coordinate to move the origin to.</param>
+	/// <param name="screenPosition">The current screen position in the world.</param>
+	/// <returns>The translation matrix.</returns>
+	public static Matrix GetOnScreenOrigin(Vector2 worldCoordinate, Vector2 screenPosition) => Matrix.CreateTranslation(new Vector3(worldCoordinate - screenPosition, 0f));
 }
 
 /// <summary>
@@ -134,8 +152,14 @@ public static class PrimitiveBuilder {
 public class PrimitiveBuilder<TVertex>
 	where TVertex : struct, IVertexType
 {
-	private readonly PrimitiveAcceptor<TVertex> _acceptor;
-	private readonly PrimitiveType _mode;
+	/// <summary>
+	/// The primitive acceptor that will handle the actual building of the vertex and index data.
+	/// </summary>
+	protected readonly PrimitiveAcceptor<TVertex> acceptor;
+	/// <summary>
+	/// The primitive type to use when rendering the built primitives.
+	/// </summary>
+	protected readonly PrimitiveType mode;
 
 	/// <summary>
 	/// An optional adjustment matrix to apply to all vertices when rendering the built primitives.
@@ -160,8 +184,8 @@ public class PrimitiveBuilder<TVertex>
 	public PrimitiveBuilder(PrimitiveAcceptor<TVertex> acceptor, PrimitiveType mode) {
 		ArgumentNullException.ThrowIfNull(acceptor);
 
-		_acceptor = acceptor;
-		_mode = mode;
+		this.acceptor = acceptor;
+		this.mode = mode;
 	}
 
 	/// <summary>
@@ -172,8 +196,39 @@ public class PrimitiveBuilder<TVertex>
 	/// <param name="primitiveCount">The number of primitives built.</param>
 	/// <param name="mode">The primitive type to use when rendering.</param>
 	public void GetData(out TVertex[] vertices, out short[] indices, out int primitiveCount, out PrimitiveType mode) {
-		_acceptor.GetData(out vertices, out indices, out primitiveCount);
-		mode = _mode;
+		acceptor.GetData(out vertices, out indices, out primitiveCount);
+		mode = this.mode;
+	}
+
+	/// <summary>
+	/// Creates a new builder that is a copy of this builder, including any vertex and index data that has been built so far.
+	/// </summary>
+	/// <returns>The cloned builder instance.</returns>
+	public PrimitiveBuilder<TVertex> Clone() {
+		var clone = NewInstance();
+		CopyTo(clone);
+		return clone;
+	}
+
+	/// <summary>
+	/// Copies the state of this builder to another builder of the same type.<br/>
+	/// This is used when cloning, and you are encouraged to copy any vertex and index data to the new builder.
+	/// </summary>
+	/// <param name="clone">The builder to copy state to.</param>
+	public virtual void CopyTo(PrimitiveBuilder<TVertex> clone) {
+		acceptor.CopyTo(clone.acceptor);
+		clone.Transform = Transform;
+		clone.Shader = Shader;
+		clone.RenderError = RenderError;
+	}
+
+	/// <summary>
+	/// Creates a new instance of the same type as this builder.<br/>
+	/// This is used when cloning the builder.
+	/// </summary>
+	/// <returns>The new builder instance.</returns>
+	public virtual PrimitiveBuilder<TVertex> NewInstance() {
+		return new PrimitiveBuilder<TVertex>(acceptor.NewInstance(), mode);
 	}
 
 	/// <summary>
@@ -184,7 +239,7 @@ public class PrimitiveBuilder<TVertex>
 	public PrimitiveBuilder<TVertex> PushPrimitive<T>(in T primitive)
 		where T : struct, IPrimitive<T, TVertex>
 	{
-		_acceptor.Push(in primitive);
+		acceptor.Push(in primitive);
 		return this;
 	}
 
@@ -198,7 +253,7 @@ public class PrimitiveBuilder<TVertex>
 		where T : struct, IPrimitive<T, TVertex>
 	{
 		foreach (ref readonly T primitive in primitives)
-			_acceptor.Push(in primitive);
+			acceptor.Push(in primitive);
 
 		return this;
 	}
@@ -212,7 +267,7 @@ public class PrimitiveBuilder<TVertex>
 		where T : struct, IPrimitive<T, TVertex>
 	{
 		foreach (ref readonly T primitive in primitives)
-			_acceptor.Push(in primitive);
+			acceptor.Push(in primitive);
 
 		return this;
 	}
@@ -226,7 +281,7 @@ public class PrimitiveBuilder<TVertex>
 	public T ReadPrimitive<T>(int index)
 		where T : struct, IPrimitive<T, TVertex>
 	{
-		return _acceptor.Read<T>(index);
+		return acceptor.Read<T>(index);
 	}
 
 	/// <summary>
@@ -266,7 +321,124 @@ public class PrimitiveBuilder<TVertex>
 	public void WritePrimitive<T>(int index, in T primitive)
 		where T : struct, IPrimitive<T, TVertex>
 	{
-		_acceptor.Write(index, primitive);
+		acceptor.Write(index, primitive);
+	}
+
+	/// <summary>
+	/// Fills the vertex buffer with the specified primitive, starting at the specified index and continuing to the end of the buffer.
+	/// </summary>
+	/// <typeparam name="T">The primitive type.</typeparam>
+	/// <param name="primitive">The primitive instance to write.</param>
+	/// <param name="start">The index of the first primitive to write to.</param>
+	public void FillPrimitive<T>(in T primitive, int start)
+		where T : struct, IPrimitive<T, TVertex>
+	{
+		FillPrimitive(in primitive, start, int.MaxValue);
+	}
+
+	/// <summary>
+	/// Fills the vertex buffer with the specified primitive, starting at the specified index and continuing for the specified count.<br/>
+	/// If the count exceeds the number of available primitives, it will stop at the end of the buffer.
+	/// </summary>
+	/// <typeparam name="T">The primitive type.</typeparam>
+	/// <param name="primitive">The primitive instance to write.</param>
+	/// <param name="start">The index of the first primitive to write to.</param>
+	/// <param name="count">The number of primitives to write.</param>
+	public void FillPrimitive<T>(in T primitive, int start, int count)
+		where T : struct, IPrimitive<T, TVertex>
+	{
+		acceptor.GetData(out _, out _, out int primitiveCount);
+
+		if (start < 0 || start >= primitiveCount)
+			ExceptionHelper.ThrowStartOutOfRange(start, primitiveCount);
+
+		if (count < 0)
+			ExceptionHelper.ThrowSequenceCountNegative(count);
+
+		int limit = (int)Math.Min((uint)(start + count), (uint)primitiveCount);
+		for (int i = start; i < limit; i++)
+			acceptor.Write(i, primitive);
+	}
+
+	/// <summary>
+	/// Gets an object that can access references to primitives previously pushed to this builder.
+	/// </summary>
+	public VertexReader GetReader() => new VertexReader(this);
+
+	/// <summary>
+	/// An object that can access references to primitives previously pushed to this builder.
+	/// </summary>
+	public readonly ref struct VertexReader {
+		private readonly PrimitiveBuilder<TVertex> _source;
+		private readonly Span<TVertex> _vertices;
+
+		internal VertexReader(PrimitiveBuilder<TVertex> builder) {
+			_source = builder;
+
+			builder.GetData(out var vertices, out _, out _, out _);
+			_vertices = vertices;
+		}
+
+		/// <summary>
+		/// Gets a reference to the primitive at the specified index.
+		/// </summary>
+		/// <typeparam name="TPrimitive">The primitive type.</typeparam>
+		/// <param name="index">The index of the primitive to get a reference to.</param>
+		/// <returns>A reference to the primitive at the specified index.</returns>
+		/// <exception cref="InvalidOperationException"/>
+		/// <exception cref="ArgumentOutOfRangeException"/>
+		public PrimitiveRef<TPrimitive, TVertex> GetReference<TPrimitive>(int index)
+			where TPrimitive : struct, IPrimitive<TPrimitive, TVertex>
+		{
+			if (!_source.acceptor.Accepts<TPrimitive>(index))
+				throw new InvalidOperationException($"The acceptor for this reader's builder does not accept primitives of type {FriendlyName<TPrimitive>.Value} at index {index}");
+
+			if (_vertices.IsEmpty)
+				throw new InvalidOperationException("This reader's builder did not have all primitives pushed yet when the reader was created");
+
+			int baseVertex = _source.acceptor.GetVertexBase(index);
+
+			if (baseVertex < 0 || baseVertex + TPrimitive.VertexCount > _vertices.Length)
+				throw new ArgumentOutOfRangeException(nameof(index), "The specified index is out of range");
+
+			return new PrimitiveRef<TPrimitive, TVertex>(_vertices, (short)baseVertex);
+		}
+
+		/// <summary>
+		/// Gets a reference to the <see cref="Point{TVertex}"/> primitive at the specified index.
+		/// </summary>
+		/// <param name="index">The index of the primitive to get a reference to.</param>
+		/// <returns>A reference to the primitive at the specified index.</returns>
+		/// <exception cref="InvalidOperationException"/>
+		/// <exception cref="ArgumentOutOfRangeException"/>
+		public PointRef<TVertex> GetPointReference(int index) => new PointRef<TVertex>(GetReference<Point<TVertex>>(index));
+
+		/// <summary>
+		/// Gets a reference to the <see cref="Line{TVertex}"/> primitive at the specified index.
+		/// </summary>
+		/// <param name="index">The index of the primitive to get a reference to.</param>
+		/// <returns>A reference to the primitive at the specified index.</returns>
+		/// <exception cref="InvalidOperationException"/>
+		/// <exception cref="ArgumentOutOfRangeException"/>
+		public LineRef<TVertex> GetLineReference(int index) => new LineRef<TVertex>(GetReference<Line<TVertex>>(index));
+
+		/// <summary>
+		/// Gets a reference to the <see cref="Triangle{TVertex}"/> primitive at the specified index.
+		/// </summary>
+		/// <param name="index">The index of the primitive to get a reference to.</param>
+		/// <returns>A reference to the primitive at the specified index.</returns>
+		/// <exception cref="InvalidOperationException"/>
+		/// <exception cref="ArgumentOutOfRangeException"/>
+		public TriangleRef<TVertex> GetTriangleReference(int index) => new TriangleRef<TVertex>(GetReference<Triangle<TVertex>>(index));
+
+		/// <summary>
+		/// Gets a reference to the <see cref="Quad{TVertex}"/> primitive at the specified index.
+		/// </summary>
+		/// <param name="index">The index of the primitive to get a reference to.</param>
+		/// <returns>A reference to the primitive at the specified index.</returns>
+		/// <exception cref="InvalidOperationException"/>
+		/// <exception cref="ArgumentOutOfRangeException"/>
+		public QuadRef<TVertex> GetQuadReference(int index) => new QuadRef<TVertex>(GetReference<Quad<TVertex>>(index));
 	}
 }
 

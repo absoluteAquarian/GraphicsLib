@@ -40,8 +40,26 @@ public record struct Line<TVertex>(TVertex Start, TVertex End) : IPrimitive<Line
 		destination[1] = self.End;
 	}
 
-	static void IPrimitive<Line<TVertex>, TVertex>.MapIndices(in Line<TVertex> self, short baseIndex, Span<short> destination) {
+	static void IPrimitive<Line<TVertex>, TVertex>.MapIndices(short baseIndex, Span<short> destination) {
 		destination[0] = baseIndex;
 		destination[1] = (short)(baseIndex + 1);
 	}
+}
+
+/// <summary>
+/// A reference to a <see cref="Line{TVertex}"/> primitive in a <see cref="PrimitiveBuilder{TVertex}"/>
+/// </summary>
+/// <typeparam name="TVertex">The vertex type.</typeparam>
+/// <param name="ref">The raw primitive reference.</param>
+public readonly ref struct LineRef<TVertex>(PrimitiveRef<Line<TVertex>, TVertex> @ref)
+	where TVertex : struct, IVertexType
+{
+	private readonly ref TVertex _start = ref @ref[0];
+	private readonly ref TVertex _end = ref @ref[1];
+
+	/// <inheritdoc cref="Line{TVertex}.Start"/>
+	public ref TVertex Start => ref _start;
+
+	/// <inheritdoc cref="Line{TVertex}.End"/>
+	public ref TVertex End => ref _end;
 }

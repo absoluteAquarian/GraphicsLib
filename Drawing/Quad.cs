@@ -47,7 +47,7 @@ public record struct Quad<TVertex>(TVertex A, TVertex B, TVertex C, TVertex D) :
 		destination[3] = self.D;
 	}
 
-	static void IPrimitive<Quad<TVertex>, TVertex>.MapIndices(in Quad<TVertex> self, short baseIndex, Span<short> destination) {
+	static void IPrimitive<Quad<TVertex>, TVertex>.MapIndices(short baseIndex, Span<short> destination) {
 		destination[0] = baseIndex;
 		destination[1] = (short)(baseIndex + 1);
 		destination[2] = (short)(baseIndex + 3);
@@ -55,4 +55,30 @@ public record struct Quad<TVertex>(TVertex A, TVertex B, TVertex C, TVertex D) :
 		destination[4] = (short)(baseIndex + 3);
 		destination[5] = (short)(baseIndex + 1);
 	}
+}
+
+/// <summary>
+/// A reference to a <see cref="Quad{TVertex}"/> primitive in a <see cref="PrimitiveBuilder{TVertex}"/>
+/// </summary>
+/// <typeparam name="TVertex">The vertex type.</typeparam>
+/// <param name="ref">The raw primitive reference.</param>
+public readonly ref struct QuadRef<TVertex>(PrimitiveRef<Quad<TVertex>, TVertex> @ref)
+	where TVertex : struct, IVertexType
+{
+	private readonly ref TVertex _a = ref @ref[0];
+	private readonly ref TVertex _b = ref @ref[1];
+	private readonly ref TVertex _c = ref @ref[3];  // NOTE: Mapindices has C at index 3
+	private readonly ref TVertex _d = ref @ref[2];  // NOTE: Mapindices has D at index 2
+
+	/// <inheritdoc cref="Quad{TVertex}.A"/>
+	public ref TVertex A => ref _a;
+	
+	/// <inheritdoc cref="Quad{TVertex}.B"/>
+	public ref TVertex B => ref _b;
+	
+	/// <inheritdoc cref="Quad{TVertex}.C"/>
+	public ref TVertex C => ref _c;
+	
+	/// <inheritdoc cref="Quad{TVertex}.D"/>
+	public ref TVertex D => ref _d;
 }

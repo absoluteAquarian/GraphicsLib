@@ -65,27 +65,10 @@ public class RestrictedPrimitiveAcceptor<TVertex, TInitial, TConsequent> : Primi
 		currentIndex = 0;
 	}
 
-	/// <summary>
-	/// A helper class for providing readable type names in exception messages.
-	/// </summary>
-	/// <typeparam name="T">The type to get the friendly name for.</typeparam>
-	protected static class FriendlyName<T> {
-		/// <summary>
-		/// The friendly name of the type <typeparamref name="T"/>
-		/// </summary>
-		public static readonly string Value;
-
-		static FriendlyName() {
-			string name = typeof(T).Name;
-			int index = name.IndexOf('`');
-			Value = index >= 0 ? name[..index] : name;
-		}
-	}
-
 	/// <inheritdoc/>
-	protected override bool Accepts<T>(int index) {
+	public override bool Accepts<T>(int index) {
 		if (index < 0 || index >= primitiveCount)
-			throw new ArgumentOutOfRangeException(nameof(index), "Index is out of range");
+			ExceptionHelper.ThrowIndexOutOfRange(index, 0, primitiveCount);
 
 		if (typeof(T) == typeof(TInitial))
 			return index == 0;
@@ -93,6 +76,15 @@ public class RestrictedPrimitiveAcceptor<TVertex, TInitial, TConsequent> : Primi
 			return index > 0;
 		else
 			return false;
+	}
+
+	/// <inheritdoc/>
+	public override void CopyTo(PrimitiveAcceptor<TVertex> clone) {
+		var restrictedAcceptor = (RestrictedPrimitiveAcceptor<TVertex, TInitial, TConsequent>)clone;
+		restrictedAcceptor.vertices = (TVertex[])vertices.Clone();
+		restrictedAcceptor.indices = (short[])indices.Clone();
+		restrictedAcceptor.currentVertex = currentVertex;
+		restrictedAcceptor.currentIndex = currentIndex;
 	}
 
 	/// <inheritdoc/>
@@ -116,14 +108,19 @@ public class RestrictedPrimitiveAcceptor<TVertex, TInitial, TConsequent> : Primi
 	}
 
 	/// <inheritdoc/>
-	protected override int GetVertexBaseForPrimitive(int index) {
+	public override int GetVertexBase(int index) {
 		if (index < 0 || index >= primitiveCount)
-			throw new ArgumentOutOfRangeException(nameof(index), "Index is out of range");
+			ExceptionHelper.ThrowIndexOutOfRange(index, 0, primitiveCount);
 
 		if (index == 0)
 			return 0;
 		else
 			return TInitial.VertexCount + (index - 1) * TConsequent.VertexCount;
+	}
+
+	/// <inheritdoc/>
+	public override PrimitiveAcceptor<TVertex> NewInstance() {
+		return new RestrictedPrimitiveAcceptor<TVertex, TInitial, TConsequent>(primitiveCount, mode, connectLastToFirst);
 	}
 
 	/// <inheritdoc/>
@@ -140,7 +137,6 @@ public class RestrictedPrimitiveAcceptor<TVertex, TInitial, TConsequent> : Primi
 			);
 
 			TInitial.MapIndices(
-				Conversion.UnsafeCast<T, TInitial>(in primitive),
 				(short)currentVertex,
 				indices.AsSpan(currentIndex, TInitial.IndexCount)
 			);
@@ -161,7 +157,6 @@ public class RestrictedPrimitiveAcceptor<TVertex, TInitial, TConsequent> : Primi
 			);
 
 			TConsequent.MapIndices(
-				Conversion.UnsafeCast<T, TConsequent>(in primitive),
 				(short)currentVertex,
 				indices.AsSpan(currentIndex, TConsequent.IndexCount)
 			);

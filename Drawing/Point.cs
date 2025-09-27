@@ -37,7 +37,21 @@ public record struct Point<TVertex>(TVertex Vertex) : IPrimitive<Point<TVertex>,
 		destination[0] = self.Vertex;
 	}
 
-	static void IPrimitive<Point<TVertex>, TVertex>.MapIndices(in Point<TVertex> self, short baseIndex, Span<short> destination) {
+	static void IPrimitive<Point<TVertex>, TVertex>.MapIndices(short baseIndex, Span<short> destination) {
 		destination[0] = baseIndex;
 	}
+}
+
+/// <summary>
+/// A reference to a <see cref="Point{TVertex}"/> primitive in a <see cref="PrimitiveBuilder{TVertex}"/>
+/// </summary>
+/// <typeparam name="TVertex">The vertex type.</typeparam>
+/// <param name="ref">The raw primitive reference.</param>
+public readonly ref struct PointRef<TVertex>(PrimitiveRef<Point<TVertex>, TVertex> @ref)
+	where TVertex : struct, IVertexType
+{
+	private readonly ref TVertex _vertex = ref @ref[0];
+
+	/// <inheritdoc cref="Point{TVertex}.Vertex"/>
+	public ref TVertex Vertex => ref _vertex;
 }
