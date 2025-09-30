@@ -110,7 +110,7 @@ public static class PrimitiveUploader {
 
 			builder.RenderError = null;
 
-			builder.GetData(out var vertices, out var indices, out int primitiveCount, out PrimitiveType mode);
+			builder.acceptor.PrepareDataToUpload(out var vertices, out var indices, out int primitiveCount);
 
 			if (vertices is not { Length: > 0 }) {
 				// Something went wrong, skip rendering the builder
@@ -150,6 +150,8 @@ public static class PrimitiveUploader {
 
 			device.SetVertexBuffer(vertexBuffer);
 			device.Indices = indexBuffer;
+
+			PrimitiveType mode = builder.mode;
 
 			if (builder.Shader is Effect shader) {
 				shader.Parameters["WorldViewProj"]?.SetValue(projection);

@@ -46,6 +46,15 @@ public class RestrictedPrimitiveAcceptor<TVertex, TInitial, TConsequent> : Primi
 	/// </summary>
 	protected int currentIndex;
 
+	/// <inheritdoc/>
+	public override ReadOnlySpan<TVertex> Vertices => WritableVertices;
+
+	/// <inheritdoc/>
+	protected override Span<TVertex> WritableVertices => currentVertex < vertices.Length ? [] : vertices;
+
+	/// <inheritdoc/>
+	public override ReadOnlySpan<short> Indices => currentVertex < vertices.Length ? [] : indices;
+
 	/// <summary>
 	/// Initializes a new instance of the <see cref="RestrictedPrimitiveAcceptor{TVertex, TInitial, TConsequent}"/> class.
 	/// </summary>
@@ -63,6 +72,14 @@ public class RestrictedPrimitiveAcceptor<TVertex, TInitial, TConsequent> : Primi
 
 		currentVertex = 0;
 		currentIndex = 0;
+
+		base.MaxPrimitives = primitiveCount;
+
+		if (this.connectLastToFirst && this.primitiveCount > 1) {
+			// TriangleStrip and LineStrip both use Point, so one additional primitive is needed
+			// The caller doesn't need to actually provide it; it's automatically "added" to the end of the index list
+			base.MaxPrimitives++;
+		}
 	}
 
 	/// <inheritdoc/>
@@ -88,26 +105,6 @@ public class RestrictedPrimitiveAcceptor<TVertex, TInitial, TConsequent> : Primi
 	}
 
 	/// <inheritdoc/>
-	public override void GetData(out TVertex[] vertices, out short[] indices, out int primitiveCount) {
-		if (this.vertices is null || this.indices is null || currentVertex < this.vertices.Length) {
-			vertices = [];
-			indices = [];
-			primitiveCount = 0;
-			return;
-		}
-
-		vertices = this.vertices;
-		indices = this.indices;
-		primitiveCount = this.primitiveCount;
-
-		if (mode is PrimitiveType.TriangleStrip or PrimitiveType.LineStrip && connectLastToFirst && this.primitiveCount > 1) {
-			// Both use Point for consequent primitives
-			indices[^1] = 0;
-			primitiveCount++;
-		}
-	}
-
-	/// <inheritdoc/>
 	public override int GetVertexBase(int index) {
 		if (index < 0 || index >= primitiveCount)
 			ExceptionHelper.ThrowIndexOutOfRange(index, 0, primitiveCount);
@@ -119,8 +116,27 @@ public class RestrictedPrimitiveAcceptor<TVertex, TInitial, TConsequent> : Primi
 	}
 
 	/// <inheritdoc/>
+	public override int GetPrimitiveIndex(short vertexIndex) {
+		if (vertexIndex < 0 || vertexIndex >= currentVertex)
+			ExceptionHelper.ThrowIndexOutOfRange(vertexIndex, 0, currentVertex);
+
+		if (vertexIndex < TInitial.VertexCount)
+			return 0;
+		else
+			return 1 + (vertexIndex - TInitial.VertexCount) / TConsequent.VertexCount;
+	}
+
+	/// <inheritdoc/>
 	public override PrimitiveAcceptor<TVertex> NewInstance() {
 		return new RestrictedPrimitiveAcceptor<TVertex, TInitial, TConsequent>(primitiveCount, mode, connectLastToFirst);
+	}
+
+	/// <inheritdoc/>
+	public override void PrepareDataToUpload(out TVertex[] vertices, out short[] indices, out int gpuPrimitiveCount) {
+		// Since the arrays are accessible, just hand them off directly instead of copying their data
+		vertices = this.vertices;
+		indices = this.indices;
+		gpuPrimitiveCount = this.primitiveCount;
 	}
 
 	/// <inheritdoc/>
@@ -163,6 +179,11 @@ public class RestrictedPrimitiveAcceptor<TVertex, TInitial, TConsequent> : Primi
 
 			currentVertex += TConsequent.VertexCount;
 			currentIndex += TConsequent.IndexCount;
+
+			if (currentVertex >= vertices.Length && connectLastToFirst) {
+				// Ensure that the last index is the same as the first
+				indices[^1] = 0;
+			}
 		} else
 			throw new NotSupportedException($"Primitive must be of type {FriendlyName<TInitial>.Value} or {FriendlyName<TConsequent>.Value}");
 	}

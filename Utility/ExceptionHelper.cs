@@ -15,7 +15,13 @@ public static class ExceptionHelper {
 
 	[DoesNotReturn]
 	[StackTraceHidden]
-	public static void ThrowStartOutOfRange(int start, int length) {
+	public static void ThrowSequenceStartNegative(int start) {
+		throw new ArgumentOutOfRangeException(nameof(start), $"Sequence start was negative ({start})");
+	}
+
+	[DoesNotReturn]
+	[StackTraceHidden]
+	public static void ThrowSequenceStartOutOfRange(int start, int length) {
 		throw new ArgumentOutOfRangeException(nameof(start), start < 0
 			? $"Sequence start was negative ({start})"
 			: $"Sequence start was out of range ({start} >= {length})");

@@ -1,1 +1,11 @@
-Projectiles.ExampleLine.DisplayName: Example Line
+Projectiles: {
+	ExampleLine.DisplayName: Example Line
+	ExampleThickPolygonProjectile.DisplayName: Example Thick Polygon Projectile
+}
+
+Items: {
+	ExampleThickPolygonItem: {
+		DisplayName: Example Thick Polygon Item
+		Tooltip: ""
+	}
+}

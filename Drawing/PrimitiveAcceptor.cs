@@ -11,6 +11,29 @@ public abstract class PrimitiveAcceptor<TVertex>
 	where TVertex : struct, IVertexType
 {
 	/// <summary>
+	/// The raw vertex data.  If the acceptor is still waiting for all primitives to be pushed, this should be empty.
+	/// </summary>
+	public abstract ReadOnlySpan<TVertex> Vertices { get; }
+
+	/// <summary>
+	/// <see cref="Vertices"/> that can be directly written to.<br/>
+	/// Used by <see cref="Write"/>
+	/// </summary>
+	protected abstract Span<TVertex> WritableVertices { get; }
+
+	internal Span<TVertex> WritableVerticesInternal => WritableVertices;
+
+	/// <summary>
+	/// The raw index data.  If the acceptor is still waiting for all primitives to be pushed, this should be empty.
+	/// </summary>
+	public abstract ReadOnlySpan<short> Indices { get; }
+
+	/// <summary>
+	/// Represents the maximum number of <see cref="IPrimitive{TSelf, TVertex}"/> instances that can be accepted by this acceptor.
+	/// </summary>
+	public int MaxPrimitives { get; protected set; }
+
+	/// <summary>
 	/// Determines if this acceptor can accept the specified primitive object.
 	/// </summary>
 	/// <typeparam name="T">The primitive type.</typeparam>
@@ -26,18 +49,17 @@ public abstract class PrimitiveAcceptor<TVertex>
 	public abstract void CopyTo(PrimitiveAcceptor<TVertex> clone);
 
 	/// <summary>
-	/// Extracts the data needed to render the built primitives.
-	/// </summary>
-	/// <param name="vertices">The array of vertices.</param>
-	/// <param name="indices">The array of indices.</param>
-	/// <param name="primitiveCount">The number of primitives built.</param>
-	public abstract void GetData(out TVertex[] vertices, out short[] indices, out int primitiveCount);
-
-	/// <summary>
 	/// Gets the base vertex index for the specified primitive index.
 	/// </summary>
 	/// <param name="index">The zero-based index of the primitive.</param>
 	public abstract int GetVertexBase(int index);
+
+	/// <summary>
+	/// Gets the index of the primitive that contains the specified vertex index.
+	/// </summary>
+	/// <param name="vertexIndex">The vertex index.</param>
+	/// <returns>The primitive index.</returns>
+	public abstract int GetPrimitiveIndex(short vertexIndex);
 
 	/// <summary>
 	/// Creates a new instance of the same type as this acceptor.<br/>
@@ -45,6 +67,18 @@ public abstract class PrimitiveAcceptor<TVertex>
 	/// </summary>
 	/// <returns>The new acceptor instance.</returns>
 	public abstract PrimitiveAcceptor<TVertex> NewInstance();
+
+	/// <summary>
+	/// Prepares the vertex and index data to be uploaded to the GPU.
+	/// </summary>
+	/// <param name="vertices">The vertex data.</param>
+	/// <param name="indices">The index data.</param>
+	/// <param name="gpuPrimitiveCount">The number of primitives to render.</param>
+	public virtual void PrepareDataToUpload(out TVertex[] vertices, out short[] indices, out int gpuPrimitiveCount) {
+		vertices = Vertices.ToArray();
+		indices = Indices.ToArray();
+		gpuPrimitiveCount = MaxPrimitives;
+	}
 
 	/// <summary>
 	/// Adds the specified primitive to the vertex buffer for this acceptor.
@@ -76,9 +110,7 @@ public abstract class PrimitiveAcceptor<TVertex>
 		if (!Accepts<T>(index))
 			throw new InvalidOperationException($"This acceptor does not accept primitives of type {FriendlyName<T>.Value} at index {index}");
 
-		GetData(out var vertices, out _, out _);
-
-		if (vertices is not { Length: > 0 })
+		if (Vertices is not { Length: > 0 } vertices)
 			throw new InvalidOperationException("The acceptor is still waiting for all primitives to be pushed");
 
 		int baseVertex = GetVertexBase(index);
@@ -86,7 +118,7 @@ public abstract class PrimitiveAcceptor<TVertex>
 		if (baseVertex < 0 || baseVertex + T.VertexCount > vertices.Length)
 			throw new ArgumentOutOfRangeException(nameof(index), "The specified index is out of range");
 
-		return T.Create(vertices.AsSpan(baseVertex, T.VertexCount));
+		return T.Create(vertices[baseVertex..T.VertexCount]);
 	}
 
 	/// <summary>
@@ -101,9 +133,7 @@ public abstract class PrimitiveAcceptor<TVertex>
 		if (!Accepts<T>(index))
 			throw new InvalidOperationException($"This acceptor does not accept primitives of type {FriendlyName<T>.Value} at index {index}");
 
-		GetData(out var vertices, out _, out _);
-
-		if (vertices is not { Length: > 0 })
+		if (WritableVertices is not { Length: > 0 } vertices)
 			throw new InvalidOperationException("The acceptor is still waiting for all primitives to be pushed");
 
 		int baseVertex = GetVertexBase(index);
@@ -113,7 +143,7 @@ public abstract class PrimitiveAcceptor<TVertex>
 
 		T.ExtractVertices(
 			in primitive,
-			vertices.AsSpan(baseVertex, T.VertexCount)
+			vertices[baseVertex..T.VertexCount]
 		);
 	}
 }

@@ -27,15 +27,7 @@ public readonly ref struct PrimitiveRef<TPrimitive, TVertex>
 	/// <param name="builder">The primitive builder containing the vertex buffer.</param>
 	/// <param name="baseVertex">The base vertex index for this primitive in the vertex buffer.</param>
 	public PrimitiveRef(PrimitiveBuilder<TVertex> builder, short baseVertex) {
-		builder.GetData(out var vertices, out _, out _, out _);
-		_vertices = vertices;
-		_indices = new short[TPrimitive.IndexCount];
-		TPrimitive.MapIndices(baseVertex, _indices);
-	}
-
-	// Used by PrimitiveBuilder<TVertex>.VertexReader
-	internal PrimitiveRef(Span<TVertex> vertices, short baseVertex) {
-		_vertices = vertices;
+		_vertices = builder.acceptor.WritableVerticesInternal;
 		_indices = new short[TPrimitive.IndexCount];
 		TPrimitive.MapIndices(baseVertex, _indices);
 	}

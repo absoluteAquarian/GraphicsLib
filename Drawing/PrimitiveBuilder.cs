@@ -155,11 +155,12 @@ public class PrimitiveBuilder<TVertex>
 	/// <summary>
 	/// The primitive acceptor that will handle the actual building of the vertex and index data.
 	/// </summary>
-	protected readonly PrimitiveAcceptor<TVertex> acceptor;
+	public readonly PrimitiveAcceptor<TVertex> acceptor;
+
 	/// <summary>
 	/// The primitive type to use when rendering the built primitives.
 	/// </summary>
-	protected readonly PrimitiveType mode;
+	public readonly PrimitiveType mode;
 
 	/// <summary>
 	/// An optional adjustment matrix to apply to all vertices when rendering the built primitives.
@@ -186,18 +187,6 @@ public class PrimitiveBuilder<TVertex>
 
 		this.acceptor = acceptor;
 		this.mode = mode;
-	}
-
-	/// <summary>
-	/// Extracts the data needed to render the built primitives.
-	/// </summary>
-	/// <param name="vertices">The array of vertices.</param>
-	/// <param name="indices">The array of indices.</param>
-	/// <param name="primitiveCount">The number of primitives built.</param>
-	/// <param name="mode">The primitive type to use when rendering.</param>
-	public void GetData(out TVertex[] vertices, out short[] indices, out int primitiveCount, out PrimitiveType mode) {
-		acceptor.GetData(out vertices, out indices, out primitiveCount);
-		mode = this.mode;
 	}
 
 	/// <summary>
@@ -344,18 +333,20 @@ public class PrimitiveBuilder<TVertex>
 	/// <param name="primitive">The primitive instance to write.</param>
 	/// <param name="start">The index of the first primitive to write to.</param>
 	/// <param name="count">The number of primitives to write.</param>
+	/// <exception cref="InvalidOperationException"/>
 	public void FillPrimitive<T>(in T primitive, int start, int count)
 		where T : struct, IPrimitive<T, TVertex>
 	{
-		acceptor.GetData(out _, out _, out int primitiveCount);
+		if (acceptor.Vertices is not { Length: > 0 })
+			throw new InvalidOperationException("This builder did not have all primitives pushed yet");
 
-		if (start < 0 || start >= primitiveCount)
-			ExceptionHelper.ThrowStartOutOfRange(start, primitiveCount);
+		if (start < 0 || start >= acceptor.MaxPrimitives)
+			ExceptionHelper.ThrowSequenceStartOutOfRange(start, acceptor.MaxPrimitives);
 
 		if (count < 0)
 			ExceptionHelper.ThrowSequenceCountNegative(count);
 
-		int limit = (int)Math.Min((uint)(start + count), (uint)primitiveCount);
+		int limit = (int)Math.Min((uint)(start + count), (uint)acceptor.MaxPrimitives);
 		for (int i = start; i < limit; i++)
 			acceptor.Write(i, primitive);
 	}
@@ -370,13 +361,11 @@ public class PrimitiveBuilder<TVertex>
 	/// </summary>
 	public readonly ref struct VertexReader {
 		private readonly PrimitiveBuilder<TVertex> _source;
-		private readonly Span<TVertex> _vertices;
+		private readonly int _numVertices;
 
 		internal VertexReader(PrimitiveBuilder<TVertex> builder) {
 			_source = builder;
-
-			builder.GetData(out var vertices, out _, out _, out _);
-			_vertices = vertices;
+			_numVertices = builder.acceptor.WritableVerticesInternal.Length;
 		}
 
 		/// <summary>
@@ -393,15 +382,17 @@ public class PrimitiveBuilder<TVertex>
 			if (!_source.acceptor.Accepts<TPrimitive>(index))
 				throw new InvalidOperationException($"The acceptor for this reader's builder does not accept primitives of type {FriendlyName<TPrimitive>.Value} at index {index}");
 
-			if (_vertices.IsEmpty)
+			if (_numVertices == 0)
 				throw new InvalidOperationException("This reader's builder did not have all primitives pushed yet when the reader was created");
 
 			int baseVertex = _source.acceptor.GetVertexBase(index);
 
-			if (baseVertex < 0 || baseVertex + TPrimitive.VertexCount > _vertices.Length)
-				throw new ArgumentOutOfRangeException(nameof(index), "The specified index is out of range");
+			if (baseVertex < 0)
+				ExceptionHelper.ThrowSequenceStartNegative(baseVertex);
+			else if (baseVertex + TPrimitive.VertexCount > _numVertices)
+				ExceptionHelper.ThrowSequenceExceedsLength(baseVertex, TPrimitive.VertexCount, _numVertices);
 
-			return new PrimitiveRef<TPrimitive, TVertex>(_vertices, (short)baseVertex);
+			return new PrimitiveRef<TPrimitive, TVertex>(_source, (short)baseVertex);
 		}
 
 		/// <summary>

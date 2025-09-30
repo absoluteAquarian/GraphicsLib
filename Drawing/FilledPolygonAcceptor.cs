@@ -9,14 +9,20 @@ namespace GraphicsLib.Drawing;
 /// Subsequent triangles are defined using a <see cref="Point"/> primitive since the triangle will share an edge with the previous triangle.
 /// </summary>
 /// <typeparam name="TVertex">The vertex type.</typeparam>
-public class PolygonAcceptor<TVertex> : RestrictedPrimitiveAcceptor<TVertex, Triangle<TVertex>, Point<TVertex>>
+public class FilledPolygonAcceptor<TVertex> : RestrictedPrimitiveAcceptor<TVertex, Triangle<TVertex>, Point<TVertex>>
 	where TVertex : struct, IVertexType
 {
 	/// <summary>
-	/// Initializes a new instance of the <see cref="PolygonAcceptor{TVertex}"/> class.
+	/// Initializes a new instance of the <see cref="FilledPolygonAcceptor{TVertex}"/> class.
 	/// </summary>
 	/// <param name="primitiveCount">The number of primitives to accept. Must be a positive integer.</param>
-	public PolygonAcceptor(int primitiveCount) : base(primitiveCount, PrimitiveType.TriangleList, false) { }
+	public FilledPolygonAcceptor(int primitiveCount) : base(primitiveCount, PrimitiveType.TriangleList, false) { }
+
+	public override PrimitiveAcceptor<TVertex> NewInstance() {
+		// This method is needed for Clone() to return the correct object type
+
+		return new FilledPolygonAcceptor<TVertex>(base.primitiveCount);
+	}
 
 	/// <inheritdoc/>
 	public override void Push<T>(in T primitive) {
@@ -32,12 +38,11 @@ public class PolygonAcceptor<TVertex> : RestrictedPrimitiveAcceptor<TVertex, Tri
 			base.vertices[base.currentVertex] = Conversion.UnsafeCast<T, Point<TVertex>>(in primitive).Vertex;
 
 			// Push the indices for a triangle instead
-			base.indices[currentIndex] = 0;
-			base.indices[currentIndex + 1] = (short)(base.currentVertex - 1);
-			base.indices[currentIndex + 2] = (short)base.currentVertex;
+			base.indices[currentIndex++] = 0;
+			base.indices[currentIndex++] = (short)(base.currentVertex - 1);
+			base.indices[currentIndex++] = (short)base.currentVertex;
 
-			base.currentVertex += 1;
-			base.currentIndex += 3;
+			base.currentVertex++;
 		} else {
 			// Use the original logic
 			base.Push(primitive);
