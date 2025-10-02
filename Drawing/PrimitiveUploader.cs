@@ -111,6 +111,7 @@ public static class PrimitiveUploader {
 			builder.RenderError = null;
 
 			builder.acceptor.PrepareDataToUpload(out var vertices, out var indices, out int primitiveCount);
+			builder.acceptor.hasChanges = false;
 
 			if (vertices is not { Length: > 0 }) {
 				// Something went wrong, skip rendering the builder

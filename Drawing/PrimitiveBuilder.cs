@@ -354,7 +354,13 @@ public class PrimitiveBuilder<TVertex>
 	/// <summary>
 	/// Gets an object that can access references to primitives previously pushed to this builder.
 	/// </summary>
-	public VertexReader GetReader() => new VertexReader(this);
+	public VertexReader GetReader() {
+		// Due to VertexReader returning ref values, we can't easily know if any writes will occur without making the backend look ugly.
+		// Just assume that that will always happen.
+		acceptor.HasChanges = true;
+
+		return new VertexReader(this);
+	}
 
 	/// <summary>
 	/// An object that can access references to primitives previously pushed to this builder.

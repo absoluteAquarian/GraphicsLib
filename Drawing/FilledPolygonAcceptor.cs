@@ -18,6 +18,7 @@ public class FilledPolygonAcceptor<TVertex> : RestrictedPrimitiveAcceptor<TVerte
 	/// <param name="primitiveCount">The number of primitives to accept. Must be a positive integer.</param>
 	public FilledPolygonAcceptor(int primitiveCount) : base(primitiveCount, PrimitiveType.TriangleList, false) { }
 
+	/// <inheritdoc/>
 	public override PrimitiveAcceptor<TVertex> NewInstance() {
 		// This method is needed for Clone() to return the correct object type
 
@@ -26,8 +27,21 @@ public class FilledPolygonAcceptor<TVertex> : RestrictedPrimitiveAcceptor<TVerte
 
 	/// <inheritdoc/>
 	public override void Push<T>(in T primitive) {
-		if (typeof(T) == typeof(Point<TVertex>)) {
-			base.EnsureInitializedArrays();
+		if (typeof(T) == typeof(Triangle<TVertex>)) {
+			EnsureInitializedArrays();
+
+			// Push the vertices for a triangle
+			if (base.currentVertex > 0)
+				throw new InvalidOperationException($"Primitives after the first must be of type {nameof(Point)}");
+
+			T.ExtractVertices(
+				in primitive,
+				base.vertices.AsSpan(base.currentVertex, T.VertexCount)
+			);
+
+			base.currentVertex += 3;
+		} else if (typeof(T) == typeof(Point<TVertex>)) {
+			EnsureInitializedArrays();
 			
 			// Push the vertex for a point
 			if (base.currentVertex < 3)
@@ -35,17 +49,15 @@ public class FilledPolygonAcceptor<TVertex> : RestrictedPrimitiveAcceptor<TVerte
 			else if (base.currentVertex >= base.vertices.Length)
 				throw new InvalidOperationException("Vertex limit has been reached on this builder");
 
-			base.vertices[base.currentVertex] = Conversion.UnsafeCast<T, Point<TVertex>>(in primitive).Vertex;
-
-			// Push the indices for a triangle instead
-			base.indices[currentIndex++] = 0;
-			base.indices[currentIndex++] = (short)(base.currentVertex - 1);
-			base.indices[currentIndex++] = (short)base.currentVertex;
+			T.ExtractVertices(
+				in primitive,
+				base.vertices.AsSpan(base.currentVertex, T.VertexCount)
+			);
 
 			base.currentVertex++;
 		} else {
 			// Use the original logic
-			base.Push(primitive);
+			base.Push(in primitive);
 		}
 	}
 
@@ -55,6 +67,21 @@ public class FilledPolygonAcceptor<TVertex> : RestrictedPrimitiveAcceptor<TVerte
 		base.vertices ??= new TVertex[3 + base.primitiveCount - 1];
 
 		// N Triangle
-		base.indices ??= new short[base.primitiveCount * 3];
+		if (base.indices is null) {
+			base.indices = new short[base.primitiveCount * 3];
+
+			// We can deterministically fill the indices array here
+			base.indices[0] = 0;
+			base.indices[1] = 1;
+			base.indices[2] = 2;
+
+			for (int i = 3; i < base.indices.Length; i += 3) {
+				base.indices[i] = 0;
+				base.indices[i + 1] = (short)(i / 3 + 1);
+				base.indices[i + 2] = (short)(i / 3 + 2);
+			}
+
+			base.currentIndex = base.indices.Length;
+		}
 	}
 }

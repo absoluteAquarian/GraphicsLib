@@ -146,19 +146,6 @@ public class RestrictedPrimitiveAcceptor<TVertex, TInitial, TConsequent> : Primi
 
 			if (currentVertex > 0)
 				throw new InvalidOperationException($"Primitives after the first must be of type {FriendlyName<TConsequent>.Value}");
-
-			TInitial.ExtractVertices(
-				Conversion.UnsafeCast<T, TInitial>(in primitive),
-				vertices.AsSpan(currentVertex, TInitial.VertexCount)
-			);
-
-			TInitial.MapIndices(
-				(short)currentVertex,
-				indices.AsSpan(currentIndex, TInitial.IndexCount)
-			);
-
-			currentVertex += TInitial.VertexCount;
-			currentIndex += TInitial.IndexCount;
 		} else if (typeof(T) == typeof(TConsequent)) {
 			EnsureInitializedArrays();
 
@@ -166,26 +153,26 @@ public class RestrictedPrimitiveAcceptor<TVertex, TInitial, TConsequent> : Primi
 				throw new InvalidOperationException($"The first primitive must be of type {FriendlyName<TInitial>.Value}");
 			else if (currentVertex >= vertices.Length)
 				throw new InvalidOperationException("Vertex limit has been reached on this builder");
-
-			TConsequent.ExtractVertices(
-				Conversion.UnsafeCast<T, TConsequent>(in primitive),
-				vertices.AsSpan(currentVertex, TConsequent.VertexCount)
-			);
-
-			TConsequent.MapIndices(
-				(short)currentVertex,
-				indices.AsSpan(currentIndex, TConsequent.IndexCount)
-			);
-
-			currentVertex += TConsequent.VertexCount;
-			currentIndex += TConsequent.IndexCount;
-
-			if (currentVertex >= vertices.Length && connectLastToFirst) {
-				// Ensure that the last index is the same as the first
-				indices[^1] = 0;
-			}
 		} else
 			throw new NotSupportedException($"Primitive must be of type {FriendlyName<TInitial>.Value} or {FriendlyName<TConsequent>.Value}");
+
+		T.ExtractVertices(
+			in primitive,
+			vertices.AsSpan(currentVertex, T.VertexCount)
+		);
+
+		T.MapIndices(
+			(short)currentVertex,
+			indices.AsSpan(currentIndex, T.IndexCount)
+		);
+
+		currentVertex += T.VertexCount;
+		currentIndex += T.IndexCount;
+
+		if (typeof(T) == typeof(TConsequent) && currentVertex >= vertices.Length && connectLastToFirst) {
+			// Ensure that the last index is the same as the first
+			indices[^1] = 0;
+		}
 	}
 
 	/// <summary>

@@ -122,6 +122,7 @@ public class ExampleThickPolygonProjectile : ModProjectile {
 
 		var reader = pentagonInstanced.GetReader();
 
+		// Since a pentagon is being drawn, we need to update 5 pairs of points (outer and inner)
 		for (int i = 0; i < 5; i++) {
 			var outerPoint = reader.GetPointReference(i);
 			var innerPoint = reader.GetPointReference(i + 5);

@@ -33,6 +33,16 @@ public abstract class PrimitiveAcceptor<TVertex>
 	/// </summary>
 	public int MaxPrimitives { get; protected set; }
 
+	internal bool hasChanges;
+	/// <summary>
+	/// Indicates whether the vertex or index data has changed since the last time it was uploaded to the GPU.<br/>
+	/// This property can be used by acceptors that read it to determine if data needs to be re-evaluated in <see cref="PrepareDataToUpload"/>
+	/// </summary>
+	public bool HasChanges {
+		get => hasChanges;
+		set => hasChanges |= value;
+	}
+
 	/// <summary>
 	/// Determines if this acceptor can accept the specified primitive object.
 	/// </summary>
@@ -95,6 +105,7 @@ public abstract class PrimitiveAcceptor<TVertex>
 	public PrimitiveAcceptor<TVertex> Clone() {
 		var clone = NewInstance();
 		CopyTo(clone);
+		clone.HasChanges = HasChanges;
 		return clone;
 	}
 
@@ -145,5 +156,7 @@ public abstract class PrimitiveAcceptor<TVertex>
 			in primitive,
 			vertices[baseVertex..T.VertexCount]
 		);
+
+		HasChanges = true;
 	}
 }

@@ -305,21 +305,27 @@ public static class SimpleShapes {
 
 		In particular, the corners need to be arranged as follows (for a rectangle):
 
-		A.......................B
-		|:'.           ....'':' |    Triangles:
-		| : '.  ...''''    .'   |      AHD  (CW)
-		|  :  'E---------F'     |      HDG  (CCW)
-		|   :  |         |:     |      DGC  (CW)
-		|    : |         | :    |      GCF  (CCW)
-		|     :|         |  :   |      CFB  (CW)
-		|     .H---------G.  :  |      FBE  (CCW)
-		|   .'    ....'''  '. : |      BEA  (CW)
-		| .:..''''           '.:|      EAH  (CCW)
-		D'''''''''''''''''''''''C
+		A...................................B
+		|:'.''...                   ...''.':|
+		|:  '.   '''...       ...'''   .'  :|
+		| :   '.       '' I ''       .'   : |
+		|  :    '.      .' '.      .'    :  |
+		|   :     '.  .'     '.  .'     :   |
+		|    :     .'E---------F'.     :    |
+		|     :  .'  |         |  '.  :     |
+		|      L     |         |     J      |
+		|     :  '.  |         |  .'  :     |
+		|    :     '.H---------G.'     :    |
+		|   :     .'  '.     .'  '.     :   |
+		|  :    .'      '. .'      '.    :  |
+		| :   .'       .. K ..       '.   : |
+		|:  .'   ...'''       '''...   '.  :|
+		|:.'..'''                   '''..'.:|
+		D'''''''''''''''''''''''''''''''''''C
 
-		This is easy to implement using a TriangleStrip primitive builder.
+		Where the colors for I, J, K and L are blended from the outer and inner colors.
 
-		As for the locations of vertices A and C, some simple math can be used for that.
+		For the locations of vertices A and C, some simple math can be used for that.
 
 		     T = thickness
 		offset = sqrt( (T/2)^2 + (T/2)^2 )
@@ -339,12 +345,15 @@ public static class SimpleShapes {
 
 		float offset = thickness * SQRT_1_OVER_2;
 
+		int numPoints = vertexData.Length;
+
 		Span<Vector3> vertexPositions = stackalloc Vector3[vertexData.Length];
-		for (int i = 0; i < vertexData.Length; i++)
+		for (int i = 0; i < numPoints; i++)
 			vertexPositions[i] = getPosition(vertexData[i]);
 
-		Span<Vector3> actualVertexPositions = stackalloc Vector3[vertexData.Length * 2];
-		int lastIndex = vertexData.Length - 1;
+		Span<Vector3> actualVertexPositions = stackalloc Vector3[numPoints * 3];
+		int lastIndex = numPoints - 1;
+		int midwayPointOffset = numPoints * 2;
 
 		Vector3 previousDirection = default;
 		for (int current = 0, previous = lastIndex, next = 1; current <= lastIndex; current++, previous++, next++) {
@@ -362,7 +371,10 @@ public static class SimpleShapes {
 
 			// This direction will be used for the "inside" vertex (e.g. E) and the opposite direction for the "outside" vertex (e.g. A)
 			actualVertexPositions[current] = vertexPositions[current] - direction * offset;
-			actualVertexPositions[current + vertexData.Length] = vertexPositions[current] + direction * offset;
+			actualVertexPositions[current + numPoints] = vertexPositions[current] + direction * offset;
+
+			// Then add the halfway point between the two original positions
+			actualVertexPositions[current + midwayPointOffset] = (vertexPositions[current] + vertexPositions[next]) / 2f;
 
 			// Update the indices before they're incremented
 			if (previous == lastIndex)
@@ -375,14 +387,31 @@ public static class SimpleShapes {
 		}
 
 		Span<Point<VertexPositionColor>> pointPrimitives = stackalloc Point<VertexPositionColor>[actualVertexPositions.Length];
-		int halfLength = vertexData.Length;
 
 		for (int i = 0, v = 0; i < pointPrimitives.Length; i++, v++) {
+			Color color;
+			if (i < numPoints) {
+				// Use the outer color
+				color = getOuterColor(vertexData[v], extraData);
+			} else if (i < midwayPointOffset) {
+				// Use the inner color
+				color = getInnerColor(vertexData[v], extraData);
+			} else {
+				// Consider the two lines that would intersect at this vertex, for example AF and BE intersect at I
+				// These two lines would have coloring that's a blend of their endpoints
+				// Then, the vertex at the intersection is a blend of those two blended colors
+				int outer = v % numPoints;
+				int inner = outer + numPoints;
+				int nextOuter = (outer + 1) % numPoints;
+				int nextInner = nextOuter + numPoints;
+
+				Color blend = Color.Lerp(pointPrimitives[outer].Vertex.Color, pointPrimitives[nextInner].Vertex.Color, 0.5f);
+				Color blend2 = Color.Lerp(pointPrimitives[inner].Vertex.Color, pointPrimitives[nextOuter].Vertex.Color, 0.5f);
+				color = Color.Lerp(blend, blend2, 0.5f);
+			}
+
 			pointPrimitives[i] = Point.Create(
-				new VertexPositionColor(
-					actualVertexPositions[i],
-					i < halfLength ? getOuterColor(vertexData[v], extraData) : getInnerColor(vertexData[v], extraData)
-				)
+				new VertexPositionColor(actualVertexPositions[i], color)
 			);
 
 			if (v == lastIndex)
@@ -391,8 +420,8 @@ public static class SimpleShapes {
 
 		// Now we can actually create the builder
 		var builder = new PrimitiveBuilder<VertexPositionColor>(
-			new ThickPolygonAcceptor<VertexPositionColor>(primitiveCount: pointPrimitives.Length),
-			PrimitiveType.TriangleStrip
+			new ThickPolygonAcceptor(primitiveCount: pointPrimitives.Length),
+			PrimitiveType.TriangleList
 		);
 
 		return builder.PushPrimitives(pointPrimitives);
