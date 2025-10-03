@@ -142,7 +142,7 @@ public static class PrimitiveBuilder {
 	/// <param name="worldCoordinate">The world coordinate to move the origin to.</param>
 	/// <param name="screenPosition">The current screen position in the world.</param>
 	/// <returns>The translation matrix.</returns>
-	public static Matrix GetOnScreenOrigin(Vector2 worldCoordinate, Vector2 screenPosition) => Matrix.CreateTranslation(new Vector3(worldCoordinate - screenPosition, 0f));
+	public static Matrix GetOnScreenOrigin(Vector2 worldCoordinate, Vector2 screenPosition) => MatrixHelper.CreateTranslation(worldCoordinate - screenPosition);
 }
 
 /// <summary>
@@ -340,8 +340,8 @@ public class PrimitiveBuilder<TVertex>
 		if (acceptor.Vertices is not { Length: > 0 })
 			throw new InvalidOperationException("This builder did not have all primitives pushed yet");
 
-		if (start < 0 || start >= acceptor.MaxPrimitives)
-			ExceptionHelper.ThrowSequenceStartOutOfRange(start, acceptor.MaxPrimitives);
+		if (start < 0)
+			ExceptionHelper.ThrowSequenceStartNegative(start);
 
 		if (count < 0)
 			ExceptionHelper.ThrowSequenceCountNegative(count);

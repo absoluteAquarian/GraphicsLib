@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using GraphicsLib.Utility;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 
@@ -33,7 +34,7 @@ public static class SimpleShapes {
 	public static PrimitiveBuilder<VertexPositionColor> LineSegment(Color startColor, Color endColor) => LineSegment(Vector3.Zero, startColor, Vector3.Zero, endColor);
 
 	/// <inheritdoc cref="LineSegment(Vector3, Vector3)"/>
-	public static PrimitiveBuilder<VertexPositionColor> LineSegment(Vector2 start, Vector2 end) => LineSegment(new Vector3(start, 0f), new Vector3(end, 0f));
+	public static PrimitiveBuilder<VertexPositionColor> LineSegment(Vector2 start, Vector2 end) => LineSegment(start.AsVector3(), end.AsVector3());
 
 	/// <summary>
 	/// Creates a builder for a single line segment with the specified start and end positions, and the color white for both endpoints.<para/>
@@ -48,7 +49,7 @@ public static class SimpleShapes {
 	public static PrimitiveBuilder<VertexPositionColor> LineSegment(Vector3 start, Vector3 end) => LineSegment(start, Color.White, end, Color.White);
 
 	/// <inheritdoc cref="LineSegment(Vector3, Vector3, Color)"/>
-	public static PrimitiveBuilder<VertexPositionColor> LineSegment(Vector2 start, Vector2 end, Color color) => LineSegment(new Vector3(start, 0f), new Vector3(end, 0f), color);
+	public static PrimitiveBuilder<VertexPositionColor> LineSegment(Vector2 start, Vector2 end, Color color) => LineSegment(start.AsVector3(), end.AsVector3(), color);
 
 	/// <summary>
 	/// Creates a builder for a single line segment with the specified start and end positions, and the specified color for both endpoints.<para/>
@@ -63,7 +64,7 @@ public static class SimpleShapes {
 	public static PrimitiveBuilder<VertexPositionColor> LineSegment(Vector3 start, Vector3 end, Color color) => LineSegment(start, color, end, color);
 
 	/// <inheritdoc cref="LineSegment(Vector3, Color, Vector3, Color)"/>
-	public static PrimitiveBuilder<VertexPositionColor> LineSegment(Vector2 start, Color startColor, Vector2 end, Color endColor) => LineSegment(new Vector3(start, 0f), startColor, new Vector3(end, 0f), endColor);
+	public static PrimitiveBuilder<VertexPositionColor> LineSegment(Vector2 start, Color startColor, Vector2 end, Color endColor) => LineSegment(start.AsVector3(), startColor, end.AsVector3(), endColor);
 
 	/// <summary>
 	/// Creates a builder for a single line segment with the specified start and end positions and colors.<para/>
@@ -91,7 +92,7 @@ public static class SimpleShapes {
 	#region PolyLine
 	/// <inheritdoc cref="PolyLine(Span{Vector3}, Color)"/>
 	public static PrimitiveBuilder<VertexPositionColor> PolyLine(Span<Vector2> positions, Color color)
-		=> PolyLine(positions, color, static (p, c) => new VertexPositionColor(new Vector3(p, 0f), c));
+		=> PolyLine(positions, color, static (p, c) => new VertexPositionColor(p.AsVector3(), c));
 
 	/// <summary>
 	/// Creates a builder for a polyline with the specified positions and color.<para/>
@@ -109,7 +110,7 @@ public static class SimpleShapes {
 
 	/// <inheritdoc cref="PolyLine(Span{ValueTuple{Vector3, Color}})"/>
 	public static PrimitiveBuilder<VertexPositionColor> PolyLine(Span<(Vector2, Color)> vertices)
-		=> PolyLine(vertices, 0, static (t, _) => new VertexPositionColor(new Vector3(t.Item1, 0f), t.Item2));
+		=> PolyLine(vertices, 0, static (t, _) => new VertexPositionColor(t.Item1.AsVector3(), t.Item2));
 
 	/// <summary>
 	/// Creates a builder for a polyline with the specified positions and colors.<para/>
@@ -153,7 +154,7 @@ public static class SimpleShapes {
 	#region HollowPolygon
 	/// <inheritdoc cref="HollowPolygon(Span{Vector3}, Color)"/>
 	public static PrimitiveBuilder<VertexPositionColor> HollowPolygon(Span<Vector2> positions, Color color)
-		=> HollowPolygon(positions, color, static (p, c) => new VertexPositionColor(new Vector3(p, 0f), c));
+		=> HollowPolygon(positions, color, static (p, c) => new VertexPositionColor(p.AsVector3(), c));
 
 	/// <summary>
 	/// Creates a builder for a hollow polygon with the specified positions and color.<para/>
@@ -171,7 +172,7 @@ public static class SimpleShapes {
 
 	/// <inheritdoc cref="HollowPolygon(Span{ValueTuple{Vector2, Color}})"/>
 	public static PrimitiveBuilder<VertexPositionColor> HollowPolygon(Span<(Vector2, Color)> vertices)
-		=> HollowPolygon(vertices, 0, static (t, _) => new VertexPositionColor(new Vector3(t.Item1, 0f), t.Item2));
+		=> HollowPolygon(vertices, 0, static (t, _) => new VertexPositionColor(t.Item1.AsVector3(), t.Item2));
 
 	/// <summary>
 	/// Creates a builder for a hollow polygon with the specified positions and colors.<para/>
@@ -215,7 +216,7 @@ public static class SimpleShapes {
 	#region ThickPolygon
 	/// <inheritdoc cref="ThickPolygon(Span{Vector3}, Color, float)"/>
 	public static PrimitiveBuilder<VertexPositionColor> ThickPolygon(Span<Vector2> positions, Color color, float thickness)
-		=> ThickPolygon(positions, color, thickness, static (p) => new Vector3(p, 0f), static (_, c) => c, static (_, c) => c);
+		=> ThickPolygon(positions, color, thickness, VectorExtensions.AsVector3, static (_, c) => c, static (_, c) => c);
 
 	/// <summary>
 	/// Creates a builder for a hollow polygon with the specified positions, color, and thickness.<para/>
@@ -238,7 +239,7 @@ public static class SimpleShapes {
 
 	/// <inheritdoc cref="ThickPolygon(Span{Vector3}, Color, Color, float)"/>
 	public static PrimitiveBuilder<VertexPositionColor> ThickPolygon(Span<Vector2> positions, Color innerColor, Color outerColor, float thickness)
-		=> ThickPolygon(positions, (innerColor, outerColor), thickness, static (p) => new Vector3(p, 0f), static (p, c) => c.innerColor, static (p, c) => c.outerColor);
+		=> ThickPolygon(positions, (innerColor, outerColor), thickness, VectorExtensions.AsVector3, static (p, c) => c.innerColor, static (p, c) => c.outerColor);
 
 	/// <summary>
 	/// Creates a builder for a hollow polygon with the specified positions, colors, and thickness.<br/>
@@ -264,7 +265,7 @@ public static class SimpleShapes {
 
 	/// <inheritdoc cref="ThickPolygon(Span{ValueTuple{Vector3, Color}}, float)"/>
 	public static PrimitiveBuilder<VertexPositionColor> ThickPolygon(Span<(Vector2, Color)> vertices, float thickness)
-		=> ThickPolygon(vertices, 0, thickness, static (t) => new Vector3(t.Item1, 0f), static (t, _) => t.Item2, static (t, _) => t.Item2);
+		=> ThickPolygon(vertices, 0, thickness, static (t) => t.Item1.AsVector3(), static (t, _) => t.Item2, static (t, _) => t.Item2);
 
 	/// <summary>
 	/// Creates a builder for a hollow polygon with the specified positions, colors, and thickness.<br/>
@@ -431,7 +432,7 @@ public static class SimpleShapes {
 	#region FilledPolygon
 	/// <inheritdoc cref="FilledPolygon(Span{Vector3}, Color)"/>
 	public static PrimitiveBuilder<VertexPositionColor> FilledPolygon(Span<Vector2> positions, Color color)
-		=> FilledPolygon(positions, color, static (p, c) => new VertexPositionColor(new Vector3(p, 0f), c));
+		=> FilledPolygon(positions, color, static (p, c) => new VertexPositionColor(p.AsVector3(), c));
 
 	/// <summary>
 	/// Creates a filled polygon primitive using the specified positions and color.<para/>
@@ -449,7 +450,7 @@ public static class SimpleShapes {
 
 	/// <inheritdoc cref="FilledPolygon(Span{ValueTuple{Vector2, Color}})"/>
 	public static PrimitiveBuilder<VertexPositionColor> FilledPolygon(Span<(Vector2, Color)> vertices)
-		=> FilledPolygon(vertices, 0, static (t, _) => new VertexPositionColor(new Vector3(t.Item1, 0f), t.Item2));
+		=> FilledPolygon(vertices, 0, static (t, _) => new VertexPositionColor(t.Item1.AsVector3(), t.Item2));
 
 	/// <summary>
 	/// Creates a filled polygon primitive using the specified positions and colors.<para/>

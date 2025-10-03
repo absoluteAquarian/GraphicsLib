@@ -129,7 +129,7 @@ public abstract class PrimitiveAcceptor<TVertex>
 		if (baseVertex < 0 || baseVertex + T.VertexCount > vertices.Length)
 			throw new ArgumentOutOfRangeException(nameof(index), "The specified index is out of range");
 
-		return T.Create(vertices[baseVertex..T.VertexCount]);
+		return T.Create(vertices.Slice(baseVertex, T.VertexCount));
 	}
 
 	/// <summary>
@@ -154,7 +154,7 @@ public abstract class PrimitiveAcceptor<TVertex>
 
 		T.ExtractVertices(
 			in primitive,
-			vertices[baseVertex..T.VertexCount]
+			vertices.Slice(baseVertex, T.VertexCount)
 		);
 
 		HasChanges = true;

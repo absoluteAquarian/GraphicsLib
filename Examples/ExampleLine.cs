@@ -1,4 +1,5 @@
 ﻿using GraphicsLib.Drawing;
+using GraphicsLib.Utility;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -119,7 +120,7 @@ public class ExampleLine : ModProjectile {
 
 			var reader = velocityLineInstanced.GetReader();
 			var primitive = reader.GetLineReference(0);
-			primitive.End.Position = new Vector3(Projectile.velocity * 10, 0f);
+			primitive.End.Position = (Projectile.velocity * 10).AsVector3();
 
 			// Render it
 
@@ -146,6 +147,11 @@ public class ExampleLine : ModProjectile {
 		int maxTicks = ProjectileID.Sets.TrailCacheLength[Projectile.type];
 
 		if (elapsedTicks >= 1) {
+			// The current transform has the projectile's center as the relative origin position (0, 0)
+			// To make Projectile.oldPos[] also be relative positions, each position would need Projectile.position subtracted from it
+			// That's inefficient, so we can instead add another translation matrix
+			transform = MatrixHelper.CreateTranslation(-Projectile.position) * transform;
+
 			previousLocationsInstanced ??= previousLocations.Clone();
 			previousLocationsInstanced.Transform = transform;
 
@@ -157,10 +163,9 @@ public class ExampleLine : ModProjectile {
 
 			var reader = previousLocationsInstanced.GetReader();
 			var linePrimitive = reader.GetLineReference(0);
+			linePrimitive.Start.Position = Projectile.position.AsVector3();
 			linePrimitive.Start.Color = Color.Red;
-			// The transform will make (0, 0) in primitive coordinates refer to the projectile's center
-			// Hence, each point using Projectile.oldPos[] needs to account for that
-			linePrimitive.End.Position = new Vector3(Projectile.oldPos[0] - Projectile.position, 0f);
+			linePrimitive.End.Position = Projectile.oldPos[0].AsVector3();
 			linePrimitive.End.Color = getVertexColor(lerp);
 
 			lerp += lerpStep;
@@ -170,7 +175,7 @@ public class ExampleLine : ModProjectile {
 			Vector3 lastPosition = default;
 
 			for (int i = 1; i < positionCount; i++, lerp += lerpStep) {
-				lastPosition = new Vector3(Projectile.oldPos[i] - Projectile.position, 0f);
+				lastPosition = Projectile.oldPos[i].AsVector3();
 
 				var pointPrimitive = reader.GetPointReference(i);
 				pointPrimitive.Vertex.Position = lastPosition;

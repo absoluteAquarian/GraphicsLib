@@ -14,7 +14,7 @@ public static class PrimitiveExtensions {
 	public static TVertex SetPosition<TVertex>(this TVertex @this, Vector2 position)
 		where TVertex : struct, IVertexType
 	{
-		return SetPosition(@this, new Vector3(position, 0f));
+		return SetPosition(@this, position.AsVector3());
 	}
 
 	/// <summary>
